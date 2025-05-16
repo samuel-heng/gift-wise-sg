@@ -1,4 +1,3 @@
-
 // Mock data for development purposes
 // In a real application, these would come from an API or database
 
@@ -79,6 +78,24 @@ export const mockOccasions = [
     daysLeft: 95
   }
 ];
+
+// Helper function to get a fallback image if the original is not available
+const getFallbackImage = (category) => {
+  const fallbacks = {
+    books: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=300&q=80",
+    cooking: "https://images.unsplash.com/photo-1556910103-1c02745adc4b?auto=format&fit=crop&w=300&q=80",
+    travel: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=300&q=80",
+    games: "https://images.unsplash.com/photo-1611996575749-79a3a250f948?auto=format&fit=crop&w=300&q=80",
+    tech: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=300&q=80",
+    stationery: "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?auto=format&fit=crop&w=300&q=80",
+    plants: "https://images.unsplash.com/photo-1470058869958-2a77ade41c02?auto=format&fit=crop&w=300&q=80",
+    tea: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=300&q=80",
+    coffee: "https://images.unsplash.com/photo-1509785307050-d4066910ec1e?auto=format&fit=crop&w=300&q=80",
+    watches: "https://images.unsplash.com/photo-1533139502658-0198f920d8e8?auto=format&fit=crop&w=300&q=80"
+  };
+  
+  return fallbacks[category] || "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&w=300&q=80";
+};
 
 export const mockGiftSuggestions = [
   // For Sarah's Birthday

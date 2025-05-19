@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { UpcomingOccasions } from '@/components/home/UpcomingOccasions';
@@ -15,10 +14,8 @@ const Index = () => {
     mockOccasions.length > 0 ? mockOccasions[0].id : null
   );
 
-  // Find the selected occasion
   const selectedOccasion = mockOccasions.find(o => o.id === selectedOccasionId);
   
-  // Filter gift suggestions for the selected occasion
   const occasionSuggestions = selectedOccasion 
     ? mockGiftSuggestions.filter(g => g.occasionId === selectedOccasionId)
     : [];
@@ -28,17 +25,14 @@ const Index = () => {
   };
 
   const handleSelectGift = (giftId: string) => {
-    // In a real app, this would navigate to gift details or add to cart
     console.log(`Selected gift: ${giftId}`);
   };
   
   return (
     <PageLayout>
       <div className="space-y-6 py-4">
-        {/* Spending Overview */}
         <SpendingOverview spent={240} budget={500} />
         
-        {/* Upcoming Occasions */}
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-medium">Upcoming Occasions</h2>
           <Button variant="ghost" size="sm" onClick={() => navigate('/contacts/add')}>
@@ -52,7 +46,6 @@ const Index = () => {
           onSelectOccasion={handleSelectOccasion}
         />
         
-        {/* Gift Suggestions */}
         {selectedOccasion && (
           <div className="mt-8">
             <GiftSuggestions 

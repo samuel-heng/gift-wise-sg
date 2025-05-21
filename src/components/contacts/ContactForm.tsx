@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -15,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
+// Zod schema for validating contact form fields
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   relationship: z.string().min(1, { message: "Relationship is required" }),
@@ -23,6 +23,7 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Type for form values inferred from schema
 type FormValues = z.infer<typeof formSchema>;
 
 interface ContactFormProps {
@@ -36,6 +37,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   onSubmit,
   isEditing = false
 }) => {
+  // Initialize react-hook-form with zod validation and default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,6 +49,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
     },
   });
 
+  // Handles form submission, calls parent onSubmit, resets if adding
   const handleSubmit = (data: FormValues) => {
     onSubmit(data);
     if (!isEditing) {
@@ -58,6 +61,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Name field */}
         <FormField
           control={form.control}
           name="name"
@@ -72,6 +76,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
+        {/* Relationship field (dropdown) */}
         <FormField
           control={form.control}
           name="relationship"
@@ -97,6 +102,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
+        {/* Birthday field (calendar popover) */}
         <FormField
           control={form.control}
           name="birthday"
@@ -114,7 +120,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "dd/MM/yyyy")
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -126,9 +132,12 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={date => field.onChange(date)}
                     disabled={(date) => date > new Date()}
                     initialFocus
+                    captionLayout="dropdown"
+                    fromYear={1920}
+                    toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
               </Popover>
@@ -137,6 +146,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
+        {/* Preferences field (textarea) */}
         <FormField
           control={form.control}
           name="preferences"
@@ -155,6 +165,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
+        {/* Notes field (textarea) */}
         <FormField
           control={form.control}
           name="notes"
@@ -173,6 +184,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
+        {/* Submit button */}
         <Button type="submit" className="w-full">
           {isEditing ? 'Update Contact' : 'Add Contact'}
         </Button>

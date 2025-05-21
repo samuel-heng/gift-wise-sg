@@ -7,11 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Import routing components from react-router-dom
 import { Routes, Route } from "react-router-dom";
 // Import page components
-import Index from "./pages/Index";
+import { Home } from "./pages/Home";
 import Budget from "./pages/Budget";
-import PurchaseHistoryPage from "./pages/PurchaseHistoryPage";
-import ContactsPage from "./pages/ContactsPage";
-import ContactDetailPage from "./pages/ContactDetailPage";
+import { History } from "./pages/History";
+import { Contacts } from "./pages/Contacts";
+import { PageLayout } from "./components/layout/PageLayout";
 import NotFound from "./pages/NotFound";
 
 // Initialize React Query client for data fetching
@@ -25,21 +25,15 @@ const App = () => (
       {/* Toaster components for displaying notifications */}
       <Toaster />
       <Sonner />
-      {/* Define routes for the application */}
-      <Routes>
-        {/* Home page route */}
-        <Route path="/" element={<Index />} />
-        {/* Budget page route */}
-        <Route path="/budget" element={<Budget />} />
-        {/* Purchase history page route */}
-        <Route path="/history" element={<PurchaseHistoryPage />} />
-        {/* Contacts list page route */}
-        <Route path="/contacts" element={<ContactsPage />} />
-        {/* Individual contact detail page with dynamic ID parameter */}
-        <Route path="/contact/:id" element={<ContactDetailPage />} />
-        {/* Fallback route for 404 Not Found errors */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <PageLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/budget" element={<Budget />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/contacts" element={<Contacts />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </PageLayout>
     </TooltipProvider>
   </QueryClientProvider>
 );

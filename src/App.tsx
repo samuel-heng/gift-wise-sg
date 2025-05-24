@@ -31,24 +31,24 @@ const App = () => {
 
   // Provide React Query context to the entire app
   return (
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
       {/* TooltipProvider enables tooltips throughout the app */}
-      <TooltipProvider>
+    <TooltipProvider>
         {/* Toaster components for displaying notifications */}
-        <Toaster />
-        <Sonner />
+      <Toaster />
+      <Sonner />
         <PageLayout>
-          <Routes>
+      <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/budget" element={<Budget />} />
+        <Route path="/budget" element={<Budget />} />
             <Route path="/history" element={<History />} />
             <Route path="/contacts" element={<Contacts />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
         </PageLayout>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 };
 
 export default App;

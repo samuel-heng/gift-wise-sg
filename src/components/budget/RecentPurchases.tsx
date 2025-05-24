@@ -37,7 +37,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                   {format(new Date(purchase.purchase_date), 'MMM d, yyyy')}
                 </div>
               </div>
-              <div className="font-medium">${purchase.price.toFixed(2)}</div>
+              <span className="bg-white border border-gray-300 rounded-full px-4 py-1 font-semibold text-base text-gray-900">${purchase.price.toFixed(2)}</span>
             </div>
           ))}
         </div>

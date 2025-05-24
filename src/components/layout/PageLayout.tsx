@@ -16,7 +16,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
       {/* Header is fixed at the top of the screen */}
       <Header />
       {/* Main content area with appropriate padding to avoid overlap with fixed header/nav */}
-      <main className="flex-1 pt-16 pb-20 px-4 max-w-screen-md mx-auto w-full">
+      <main className="flex-1 pt-12 pb-20 px-4 max-w-screen-md mx-auto w-full">
         {children}
       </main>
       {/* BottomNav is fixed at the bottom of the screen */}

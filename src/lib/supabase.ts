@@ -37,7 +37,8 @@ export type Occasion = {
 
 export type Gift = {
   id: string;
-  occasion_id: string;
+  occasion_id: string | null;
+  contact_id?: string | null;
   name: string;
   price: number;
   url?: string;
@@ -53,6 +54,7 @@ export type Purchase = {
   purchase_date: string;
   notes?: string;
   created_at: string;
+  contact_id?: string | null;
 };
 
 export type UserProfile = {

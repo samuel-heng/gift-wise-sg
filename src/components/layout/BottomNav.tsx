@@ -36,8 +36,8 @@ export const BottomNav = () => {
                 "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
                 // Apply different styles for active vs inactive items
                 isActive 
-                  ? "text-gift-purple" 
-                  : "text-gray-500 hover:text-gift-purple-dark"
+                  ? "text-primary" 
+                  : "text-gray-500 hover:text-secondary"
               )}
               aria-label={item.name}
             >

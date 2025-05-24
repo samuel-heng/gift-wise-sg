@@ -1,5 +1,5 @@
 // Import React and useState hook for managing component state
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // Import page layout component for consistent structure
 import { PageLayout } from '@/components/layout/PageLayout';
 // Import components specific to the budget page
@@ -12,14 +12,16 @@ import { userProfileService, purchaseService } from '../lib/db';
 import type { Purchase, UserProfile } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { format } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Budget = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [budget, setBudget] = useState<number>(500);
-  const [activeTab, setActiveTab] = useState<string>('overview');
-  const [purchases, setPurchases] = useState<(Purchase & { gifts: { name: string } })[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('spending');
+  const [purchases, setPurchases] = useState<(Purchase & { gifts: { name: string; occasions?: { occasion_type?: string } }, category?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupBy, setGroupBy] = useState<'category' | 'occasion'>('category');
   
   // Handler for when user saves a new budget amount
   const handleSaveBudget = async (newBudget: number) => {
@@ -50,14 +52,6 @@ const Budget = () => {
     loadData();
   }, []);
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading budget data...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500 p-4">Error: {error}</div>;
-  }
-
   // Calculate total spent
   const totalSpent = purchases.reduce((sum, purchase) => sum + purchase.price, 0);
   const percentUsed = Math.min((totalSpent / budget) * 100, 100);
@@ -74,19 +68,29 @@ const Budget = () => {
   }, {} as Record<string, typeof purchases>);
 
   // Prepare data for spending chart
-  const spendingCategories = purchases.reduce((acc, purchase) => {
-    const category = purchase.gifts.name.split(' ')[0]; // Simple categorization based on first word
-    if (!acc[category]) {
-      acc[category] = 0;
+  const chartData = useMemo(() => {
+    if (groupBy === 'category') {
+      const spendingCategories = purchases.reduce((acc, purchase) => {
+        const category = purchase.category || 'Other';
+        if (!acc[category]) {
+          acc[category] = 0;
+        }
+        acc[category] += purchase.price;
+        return acc;
+      }, {} as Record<string, number>);
+      return Object.entries(spendingCategories).map(([category, amount]) => ({ category, amount }));
+    } else {
+      const spendingOccasions = purchases.reduce((acc, purchase) => {
+        const occasionType = purchase.gifts?.occasions?.occasion_type || 'Other';
+        if (!acc[occasionType]) {
+          acc[occasionType] = 0;
+        }
+        acc[occasionType] += purchase.price;
+        return acc;
+      }, {} as Record<string, number>);
+      return Object.entries(spendingOccasions).map(([category, amount]) => ({ category, amount }));
     }
-    acc[category] += purchase.price;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const chartData = Object.entries(spendingCategories).map(([category, amount]) => ({
-    category,
-    amount
-  }));
+  }, [purchases, groupBy]);
 
   // Get recent purchases (last 5)
   const recentPurchases = [...purchases]
@@ -95,82 +99,75 @@ const Budget = () => {
 
   return (
     <PageLayout>
-      <div className="space-y-6 py-4">
-        {/* Tabs for switching between overview and settings */}
+      <h1 className="text-2xl font-bold mt-0 mb-4">Budget & Spending</h1>
+      {/* Tabs for switching between spending and budget */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">Loading budget data...</div>
+      ) : error ? (
+        <div className="text-red-500 p-4">Error: {error}</div>
+      ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="spending">Spending</TabsTrigger>
+            <TabsTrigger value="budget">Budget</TabsTrigger>
           </TabsList>
-          
-          {/* Overview tab content - shows spending chart and recent purchases */}
-          <TabsContent value="overview" className="space-y-6 mt-4">
-            {/* Spending Chart - visualizes spending by category */}
-            <SpendingChart data={chartData} />
-            
-            {/* Recent Purchases - shows the most recent transactions */}
+          {/* Spending tab content - shows spending chart, spending overview, and recent purchases */}
+          <TabsContent value="spending" className="space-y-6 mt-4">
+            <Card className="w-full">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl">Spending by:</CardTitle>
+                <div className="flex gap-2 ml-4">
+                  <button
+                    className={`px-4 py-1 rounded-md border text-base font-medium transition-colors ${groupBy === 'category' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-muted'}`}
+                    onClick={() => setGroupBy('category')}
+                    type="button"
+                  >
+                    Gifts
+                  </button>
+                  <button
+                    className={`px-4 py-1 rounded-md border text-base font-medium transition-colors ${groupBy === 'occasion' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-muted'}`}
+                    onClick={() => setGroupBy('occasion')}
+                    type="button"
+                  >
+                    Occasion
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <SpendingChart data={chartData} />
+              </CardContent>
+            </Card>
             <RecentPurchases purchases={recentPurchases} />
           </TabsContent>
-          
-          {/* Settings tab content - allows user to update their budget */}
-          <TabsContent value="settings" className="mt-4">
+          {/* Budget tab content - shows budget tracker only */}
+          <TabsContent value="budget" className="mt-4 space-y-6">
             <BudgetForm currentBudget={budget} onSave={handleSaveBudget} />
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">Budget Overview</h1>
-
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Total Spent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">${totalSpent.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-8">
-          {Object.entries(purchasesByMonth).map(([month, monthPurchases]) => {
-            const monthTotal = monthPurchases.reduce((sum, p) => sum + p.price, 0);
-            
-            return (
-              <div key={month}>
-                <h2 className="text-xl font-semibold mb-4">{month}</h2>
-                <div className="space-y-4">
-                  {monthPurchases.map((purchase) => (
-                    <Card key={purchase.id}>
-                      <CardHeader>
-                        <CardTitle>{purchase.gifts.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-2">
-                          <div className="text-sm">
-                            <span className="font-semibold">Price:</span> ${purchase.price}
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-semibold">Date:</span>{' '}
-                            {format(new Date(purchase.purchase_date), 'MMMM d, yyyy')}
-                          </div>
-                          {purchase.notes && (
-                            <div className="text-sm">
-                              <span className="font-semibold">Notes:</span> {purchase.notes}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <div className="text-right font-semibold">
-                    Month Total: ${monthTotal.toFixed(2)}
+            <Card className="max-w-xl mx-auto">
+              <CardHeader>
+                <CardTitle>Annual Budget</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-lg">Yearly Budget</span>
+                    <span className="font-semibold text-primary text-lg">${budget.toFixed(2)}</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-4 mb-2">
+                    <div
+                      className="bg-primary h-4 rounded-full transition-all duration-500"
+                      style={{ width: `${percentUsed}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>{percentUsed.toFixed(0)}% used</span>
+                    <span className="text-gray-600">${totalSpent.toFixed(2)} spent</span>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </PageLayout>
   );
 };

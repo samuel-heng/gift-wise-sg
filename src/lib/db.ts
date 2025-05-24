@@ -99,6 +99,14 @@ export const occasionService = {
       .single();
     if (error) throw error;
     return data as Occasion;
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('occasions')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   }
 };
 
@@ -118,7 +126,7 @@ export const giftService = {
   async create(gift: Omit<Gift, 'id' | 'created_at'>, userId: string) {
     const { data, error } = await supabase
       .from('gifts')
-      .insert({ ...gift, user_id: userId })
+      .insert({ ...gift, user_id: userId || '00000000-0000-0000-0000-000000000001' })
       .select()
       .single();
     if (error) throw error;
@@ -142,23 +150,41 @@ export const purchaseService = {
   async getAll(userId: string) {
     const { data, error } = await supabase
       .from('purchases')
-      .select('*, gifts(name)')
+      .select('*, gifts(id, name, occasion_id, contact_id, occasions:occasion_id(id, occasion_type, contact_id, contacts:contact_id(name)))')
       .eq('user_id', userId)
       .order('purchase_date', { ascending: false });
     if (error) throw error;
-    return data as (Purchase & { gifts: { name: string } })[];
+    return data as (Purchase & { gifts: { id: string, name: string, occasion_id: string | null, contact_id?: string | null, occasions: { id: string, occasion_type: string, contact_id: string, contacts: { name: string } } } })[];
   },
 
-  async create(purchase: Omit<Purchase, 'id' | 'created_at'>) {
+  async create(purchase: Omit<Purchase, 'id' | 'created_at'>, userId?: string) {
     const { data, error } = await supabase
       .from('purchases')
-      .insert(purchase)
+      .insert({ ...purchase, user_id: userId || '00000000-0000-0000-0000-000000000001' })
       .select()
       .single();
-    
     if (error) throw error;
     return data as Purchase;
-  }
+  },
+
+  async update(id: string, purchase: Partial<Purchase>) {
+    const { data, error } = await supabase
+      .from('purchases')
+      .update(purchase)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Purchase;
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('purchases')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
 };
 
 // User Profile operations

@@ -1,87 +1,105 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 260 40% 98%; /* Light lavender background */
-    --foreground: 240 10% 14%; /* Dark text */
+    /* Old lilac/purple theme values are commented below for easy reversion */
+    /* --background: 260 40% 98%;  Light lavender background */
+    /* --primary: 255 85% 75%;  Purple primary */
+    /* --secondary: 255 20% 54%;  Secondary purple */
+    /* --muted: 260 30% 94%; */
+    /* --accent: 199 94% 48%;  Blue accent */
+    /* --ring: 255 85% 75%; */
+    /* --sidebar-primary: 255 85% 75%; */
+    /* --sidebar-accent: 240 4.8% 95.9%; */
+
+    --background: 210 40% 98%; /* Slate/blue-grey background */
+    --foreground: 222 47% 11%; /* Slate text */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 14%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 14%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 255 85% 75%; /* Purple primary */
-    --primary-foreground: 255 0% 100%;
+    --primary: 222 47% 31%; /* Slate primary */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 255 20% 54%; /* Secondary purple */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 27% 80%; /* Blue-grey secondary */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 260 30% 94%;
-    --muted-foreground: 240 5% 45%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 222 10% 50%;
 
-    --accent: 199 94% 48%; /* Blue accent */
+    --accent: 199 94% 48%; /* Blue accent (unchanged) */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 240 10% 86%;
-    --input: 240 10% 86%;
-    --ring: 255 85% 75%;
+    --border: 222 14% 85%;
+    --input: 222 14% 85%;
+    --ring: 222 47% 31%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 255 85% 75%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 255 85% 75%;
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 222 47% 31%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 27% 80%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 222 14% 85%;
+    --sidebar-ring: 222 47% 31%;
   }
 
   .dark {
-    --background: 240 10% 14%;
-    --foreground: 0 0% 95%;
+    /* Old lilac/purple theme values are commented below for easy reversion */
+    /* --background: 240 10% 14%; */
+    /* --primary: 255 85% 75%; */
+    /* --secondary: 240 5.2% 33.9%; */
+    /* --muted: 240 3.7% 25.9%; */
+    /* --ring: 255 85% 75%; */
+    /* --sidebar-primary: 255 85% 75%; */
+    /* --sidebar-accent: 240 3.7% 25.9%; */
 
-    --card: 240 10% 18%;
-    --card-foreground: 0 0% 95%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --popover: 240 10% 14%;
-    --popover-foreground: 0 0% 95%;
+    --card: 222 47% 16%;
+    --card-foreground: 210 40% 98%;
 
-    --primary: 255 85% 75%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
 
-    --secondary: 240 5.2% 33.9%;
-    --secondary-foreground: 0 0% 98%;
+    --primary: 210 27% 80%;
+    --primary-foreground: 222 47% 11%;
 
-    --muted: 240 3.7% 25.9%;
-    --muted-foreground: 240 5% 65%;
+    --secondary: 222 47% 31%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 14% 20%;
+    --muted-foreground: 210 40% 80%;
 
     --accent: 199 94% 48%;
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 95%;
 
-    --border: 240 3.7% 25.9%;
-    --input: 240 3.7% 25.9%;
-    --ring: 255 85% 75%;
+    --border: 222 14% 20%;
+    --input: 222 14% 20%;
+    --ring: 210 27% 80%;
 
-    --sidebar-background: 240 10% 14%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 255 85% 75%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 25.9%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 240 3.7% 25.9%;
-    --sidebar-ring: 255 85% 75%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 27% 80%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 47% 31%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 14% 20%;
+    --sidebar-ring: 210 27% 80%;
   }
 }
 
@@ -104,8 +122,12 @@
   .gift-card {
     @apply bg-white rounded-xl shadow-md p-4 transition-all duration-300;
   }
-  
-  .gift-button {
-    @apply bg-gift-purple text-white rounded-lg px-4 py-2 hover:bg-gift-purple-dark transition-colors;
-  }
+}
+
+/* Force scrollbar to always be visible, even when Radix UI Select tries to hide it */
+html, body {
+  overflow-y: scroll !important;
+}
+body[style*="overflow: hidden"], html[style*="overflow: hidden"] {
+  overflow-y: scroll !important;
 }

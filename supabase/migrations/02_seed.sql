@@ -1,3 +1,6 @@
+-- This file is for initial seeding only. The old user ID '00000000-0000-0000-0000-000000000001' is no longer used in production.
+-- You may comment out the following lines if you wish to avoid confusion.
+
 -- Insert a default user profile
 INSERT INTO user_profiles (id, name, yearly_budget) VALUES ('00000000-0000-0000-0000-000000000001', 'Default User', 500)
 ON CONFLICT (id) DO NOTHING;

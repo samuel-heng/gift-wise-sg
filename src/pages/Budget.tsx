@@ -39,6 +39,11 @@ const Budget = () => {
     async function loadData() {
       try {
         const profile = await userProfileService.getDefaultProfile();
+        if (!profile) {
+          setError('You must be logged in to view this page.');
+          setLoading(false);
+          return;
+        }
         setUserProfile(profile);
         setBudget(profile.yearly_budget);
         const data = await purchaseService.getAll(profile.id);

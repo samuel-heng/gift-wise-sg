@@ -4,7 +4,7 @@ import type { Occasion, Gift, UserProfile, Purchase, Contact } from '../lib/supa
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Button } from '../components/ui/button';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, RefreshCw, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/components/ui/use-toast';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { fetchGiftIdeas } from "../services/giftIdeasService";
 
 // Returns the number of days left until a given date string (YYYY-MM-DD)
 function getDaysLeft(dateStr: string) {
@@ -26,9 +27,6 @@ function getDaysLeft(dateStr: string) {
 
 // Returns a color class based on how many days are left
 function getDaysLeftColor(daysLeft: number) {
-  if (daysLeft < 0) return 'text-muted-foreground';
-  if (daysLeft <= 7) return 'text-destructive';
-  if (daysLeft <= 30) return 'text-accent';
   return 'text-muted-foreground';
 }
 
@@ -59,6 +57,32 @@ function getAmazonDomain() {
   return 'amazon.com';
 }
 
+const LOCAL_STORAGE_KEY = "giftwise-gpt-home-state";
+function saveHomeState(state: any) {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+}
+function loadHomeState() {
+  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// Helper to convert days to {value, unit}
+function daysToValueUnit(days: number) {
+  if (days % 30 === 0) return { value: days / 30, unit: 'months' };
+  if (days % 7 === 0) return { value: days / 7, unit: 'weeks' };
+  return { value: days, unit: 'days' };
+}
+function valueUnitToDays(value: number, unit: string) {
+  if (unit === 'months') return value * 30;
+  if (unit === 'weeks') return value * 7;
+  return value;
+}
+
 export function Home() {
   // State for user profile, contacts, occasions, gifts, purchases, loading, error, modal, and form
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -87,6 +111,11 @@ export function Home() {
     async function loadData() {
       try {
         const profile = await userProfileService.getDefaultProfile();
+        if (!profile) {
+          setError('You must be logged in to view this page.');
+          setLoading(false);
+          return;
+        }
         setUserProfile(profile);
         const contactsData = await contactService.getAll(profile.id);
         setContacts(contactsData);
@@ -110,6 +139,10 @@ export function Home() {
     loadData();
   }, []);
 
+  // Add state for reminder timing
+  const [reminderValue, setReminderValue] = useState(2);
+  const [reminderUnit, setReminderUnit] = useState('weeks');
+
   // Opens the modal for adding or editing an occasion
   // If editing, pre-fills the form with the occasion's data
   const openModal = (occasion?: any) => {
@@ -121,9 +154,14 @@ export function Home() {
         date: occasion.date ? new Date(occasion.date + 'T00:00:00') : undefined,
         notes: occasion.notes || '',
       });
+      const { value, unit } = daysToValueUnit(occasion.reminder_days_before ?? 14);
+      setReminderValue(value);
+      setReminderUnit(unit);
     } else {
       setEditOccasion(null);
       setForm({ contactId: contacts[0]?.id || '', occasion_type: '', date: undefined, notes: '' });
+      setReminderValue(2);
+      setReminderUnit('weeks');
     }
     setModalOpen(true);
   };
@@ -135,12 +173,14 @@ export function Home() {
     setLoading(true);
     try {
       const dateStr = form.date ? `${form.date.getFullYear()}-${String(form.date.getMonth() + 1).padStart(2, '0')}-${String(form.date.getDate()).padStart(2, '0')}` : '';
+      const reminder_days_before = valueUnitToDays(reminderValue, reminderUnit);
       if (editOccasion) {
         await occasionService.update(editOccasion.id, {
           contact_id: form.contactId,
           occasion_type: form.occasion_type,
           date: dateStr,
           notes: form.notes,
+          reminder_days_before,
         });
       } else {
         await occasionService.create({
@@ -148,6 +188,7 @@ export function Home() {
           occasion_type: form.occasion_type,
           date: dateStr,
           notes: form.notes,
+          reminder_days_before,
         }, userProfile.id);
       }
       // Refresh data after save
@@ -185,37 +226,84 @@ export function Home() {
   const [selectedOccasionId, setSelectedOccasionId] = useState<string>('none');
   const selectedContact = contacts.find(c => c.id === selectedContactId);
   const selectedOccasion = selectedOccasionId !== 'none' ? contactOccasions.find(o => o.id === selectedOccasionId) : null;
-  // Recommendation logic (replace with OpenAI API later)
-  const recommendations = useMemo(() => {
-    if (!selectedContact) return [];
-    const age = selectedContact.birthday ? Math.floor((Date.now() - new Date(selectedContact.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : undefined;
-    const prefs = selectedContact.preferences?.toLowerCase() || '';
-    const occasionType = selectedOccasion?.occasion_type || null;
-    // Simple rule-based logic for now
-    const recs = [];
-    if (occasionType === 'Birthday') {
-      if (age !== undefined && age < 12) recs.push({ name: 'LEGO Set', reason: 'Popular for kids birthdays', price: 30 });
-      else if (age !== undefined && age < 18) recs.push({ name: 'Board Game', reason: 'Fun for teens', price: 25 });
-      else if (prefs.includes('book')) recs.push({ name: 'Bestselling Book', reason: 'Matches their interest in books', price: 20 });
-      else recs.push({ name: 'Gift Card', reason: 'Always appreciated', price: 25 });
-    } else if (occasionType === 'Housewarming') {
-      recs.push({ name: 'Scented Candle', reason: 'Great for new homes', price: 15 });
-      recs.push({ name: 'Plant', reason: 'Brings life to a new space', price: 20 });
-    } else if (occasionType === 'Farewell') {
-      recs.push({ name: 'Personalized Mug', reason: 'A memorable keepsake', price: 18 });
-      recs.push({ name: 'Travel Journal', reason: 'Useful for new adventures', price: 22 });
-    } else if (occasionType) {
-      recs.push({ name: `${occasionType} Gift`, reason: `A thoughtful gift for a ${occasionType.toLowerCase()}`, price: 25 });
-    } else {
-      // No occasion: general recommendations
-      if (prefs.includes('coffee')) recs.push({ name: 'Coffee Sampler', reason: 'They love coffee', price: 20 });
-      if (prefs.includes('tech')) recs.push({ name: 'Bluetooth Tracker', reason: 'Tech gadgets are always useful', price: 30 });
-      if (prefs.includes('book')) recs.push({ name: 'Bookstore Gift Card', reason: 'Matches their interest in books', price: 25 });
-      if (age !== undefined && age < 12) recs.push({ name: 'Puzzle Toy', reason: 'Great for young kids', price: 15 });
-      if (recs.length === 0) recs.push({ name: 'Gift Card', reason: 'A safe, flexible choice', price: 25 });
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [recommendationCache, setRecommendationCache] = useState<Record<string, any[]>>({});
+
+  const fetchAIRecommendations = async (forceRefresh = false) => {
+    if (!selectedContact) return;
+    // Allow occasion to be null/none
+    const occasionKey = selectedOccasion ? selectedOccasion.id : 'none';
+    const cacheKey = `${selectedContact.id}-${occasionKey}`;
+    if (!forceRefresh && recommendationCache[cacheKey]) {
+      setAiRecommendations(recommendationCache[cacheKey]);
+      return;
     }
-    return recs;
-  }, [selectedContact, selectedOccasion]);
+    setAiLoading(true);
+    setAiError("");
+    try {
+      // Get past purchases for this contact
+      const pastPurchases = purchases
+        .filter(p => {
+          // Try to get contact_id from joined gift, fallback to purchase
+          const giftContactId = p.gifts && 'contact_id' in p.gifts ? p.gifts.contact_id : undefined;
+          return (
+            p.gifts && p.gifts.name &&
+            (giftContactId === selectedContact.id || p.contact_id === selectedContact.id)
+          );
+        })
+        .map(p => p.gifts.name);
+      const aiResults = await fetchGiftIdeas({
+        recipient: selectedContact.name,
+        occasion: selectedOccasion ? selectedOccasion.occasion_type : "None",
+        preferences: selectedContact.preferences || "",
+        pastPurchases,
+      });
+      setAiRecommendations(aiResults);
+      setRecommendationCache(prev => ({ ...prev, [cacheKey]: aiResults }));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : String(err));
+      setAiRecommendations([]);
+    }
+    setAiLoading(false);
+  };
+
+  useEffect(() => {
+    if (selectedContact) {
+      fetchAIRecommendations();
+    } else {
+      setAiRecommendations([]);
+    }
+    // eslint-disable-next-line
+  }, [selectedContact, selectedOccasion, purchases]);
+
+  // Reset occasion to 'none' when contact changes
+  useEffect(() => {
+    setSelectedOccasionId('none');
+  }, [selectedContactId]);
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    const saved = loadHomeState();
+    if (saved) {
+      setSelectedContactId(saved.selectedContactId || '');
+      setSelectedOccasionId(saved.selectedOccasionId || 'none');
+      setRecommendationCache(saved.recommendationCache || {});
+    }
+  }, []);
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    saveHomeState({
+      selectedContactId,
+      selectedOccasionId,
+      recommendationCache,
+    });
+  }, [selectedContactId, selectedOccasionId, recommendationCache]);
+
+  // Add state for calendar popover open/close
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   return (
     <PageLayout>
@@ -273,7 +361,22 @@ export function Home() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Gift Ideas</h2>
+            <div className="flex items-center mb-4">
+              <h2 className="text-2xl font-semibold mr-2">Gift Ideas</h2>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={() => fetchAIRecommendations(true)}
+                disabled={aiLoading || !selectedContact}
+                aria-label="Refresh gift ideas"
+                className="ml-1 bg-[#233A6A] hover:bg-[#1a2b4d] text-white"
+              >
+                <RefreshCw className={aiLoading ? 'animate-spin' : ''} />
+              </Button>
+            </div>
+            <div className="mb-2 text-sm text-muted-foreground">
+              Our AI-powered idea generator takes into account the contact's preferences, the occasion, and their past purchases to suggest thoughtful gifts.
+            </div>
             {/* Contact selector */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <div className="flex-1">
@@ -312,9 +415,9 @@ export function Home() {
                 </Select>
               </div>
             </div>
-            {/* Recommendations */}
+            {/* AI Recommendations */}
             <div className="space-y-4">
-              {recommendations.map((rec, idx) => (
+              {aiRecommendations.map((rec, idx) => (
                 <Card key={idx}>
                   <CardHeader>
                     <CardTitle>{rec.name}</CardTitle>
@@ -324,27 +427,45 @@ export function Home() {
                       <div className="text-sm">
                         <span className="font-semibold">Reason:</span> {rec.reason}
                       </div>
-                      {rec.price && (
-                        <div className="text-sm">
-                          <span className="font-semibold">Estimated Price:</span> ${rec.price}
-                        </div>
-                      )}
-                      <a
-                        href={`https://${getAmazonDomain()}/s?k=${encodeURIComponent(rec.name)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline text-sm"
-                      >
-                        Search on Amazon
-                      </a>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="font-semibold">Start shopping on: </span>
+                        <a
+                          href={`https://${getAmazonDomain()}/s?k=${encodeURIComponent(rec.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-[#232F3E] text-white text-sm font-medium hover:bg-[#1a232e] transition"
+                        >
+                          <ShoppingBag className="w-4 h-4 mr-1" /> Amazon
+                        </a>
+                        <a
+                          href={`https://shopee.sg/search?keyword=${encodeURIComponent(rec.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-[#FF5722] text-white text-sm font-medium hover:bg-[#e64a19] transition"
+                          title="You may need to log in to Shopee to see search results"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" /> Shopee
+                        </a>
+                        <a
+                          href={`https://www.lazada.sg/catalog/?q=${encodeURIComponent(rec.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-[#1a9cff] text-white text-sm font-medium hover:bg-[#157acc] transition"
+                        >
+                          <Store className="w-4 h-4 mr-1" /> Lazada
+                        </a>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-              {recommendations.length === 0 && (
+              {aiRecommendations.length === 0 && !aiLoading && (
                 <Card className="p-6 text-center bg-white/50 border border-dashed">
                   <p className="text-muted-foreground">No recommendations available for this selection.</p>
                 </Card>
+              )}
+              {aiError && (
+                <div className="text-red-500">{aiError}</div>
               )}
             </div>
           </div>
@@ -390,7 +511,7 @@ export function Home() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Popover>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -411,14 +532,40 @@ export function Home() {
                     <Calendar
                       mode="single"
                       selected={form.date}
-                      onSelect={date => setForm(f => ({ ...f, date: date ?? undefined }))}
+                      onSelect={date => {
+                        setForm(f => ({ ...f, date: date ?? undefined }));
+                        if (date) setCalendarOpen(false);
+                      }}
                       initialFocus
                       captionLayout="dropdown"
                       fromYear={1920}
                       toYear={new Date().getFullYear()}
+                      defaultMonth={form.date ? form.date : undefined}
                     />
                   </PopoverContent>
                 </Popover>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-medium">Remind me:</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={reminderValue}
+                    onChange={e => setReminderValue(Number(e.target.value))}
+                    className="w-16"
+                  />
+                  <Select value={reminderUnit} onValueChange={setReminderUnit}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="days">days</SelectItem>
+                      <SelectItem value="weeks">weeks</SelectItem>
+                      <SelectItem value="months">months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground">before the occasion</span>
+                </div>
                 <Textarea
                   placeholder="Notes (optional)"
                   value={form.notes}

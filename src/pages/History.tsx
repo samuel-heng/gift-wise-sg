@@ -82,6 +82,11 @@ export function History() {
     async function loadAll() {
       try {
         const profile = await userProfileService.getDefaultProfile();
+        if (!profile) {
+          setError('You must be logged in to view this page.');
+          setLoading(false);
+          return;
+        }
         setUserProfile(profile);
         const [contactsData, occasionsData] = await Promise.all([
           contactService.getAll(profile.id),
@@ -99,12 +104,13 @@ export function History() {
     loadAll();
   }, []);
 
-  // Update occasion and gift options when contact/occasion changes
+  // Update occasion options when contact changes
   const updateOccasionOptions = (contactId: string) => {
-    // Add a 'None' option with value 'none'
     const filtered = occasions.filter((o) => o.contact_id === contactId);
-    setOccasionOptions([{ id: 'none', occasion_type: 'None', date: '' }, ...filtered]);
+    setOccasionOptions(filtered);
   };
+
+  // Update gift options when occasion changes
   const updateGiftOptions = async (occasionId: string) => {
     if (!userProfile) return;
     setFormLoading(true);
@@ -212,15 +218,13 @@ export function History() {
   // Watch for contact/occasion changes to update dropdowns
   const contactId = form.watch('contactId');
   const occasionId = form.watch('occasionId');
-  // Only update occasion options if contactId changes and not during edit modal open
   useEffect(() => {
-    if (!editModalOpen && contactId) {
+    if (contactId) {
       updateOccasionOptions(contactId);
       form.setValue('occasionId', '');
       setGiftOptions([]);
     }
-    // eslint-disable-next-line
-  }, [contactId, editModalOpen]);
+  }, [contactId]);
   useEffect(() => {
     if (occasionId) {
       updateGiftOptions(occasionId);
@@ -450,15 +454,18 @@ export function History() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Occasion</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={occasionOptions.length === 0}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select occasion" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
                             {occasionOptions.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>{o.occasion_type}{o.date ? ` (${o.date})` : ''}</SelectItem>
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.occasion_type} ({o.date})
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

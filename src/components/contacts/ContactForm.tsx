@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,6 +52,9 @@ export const ContactForm: React.FC<ContactFormProps> = ({
       notes: initialValues?.notes || '',
     },
   });
+
+  // Add state for calendar popover open/close
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Handles form submission, calls parent onSubmit, resets if adding
   const handleSubmit = (data: FormValues) => {
@@ -143,7 +146,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Birthday</FormLabel>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -166,12 +169,16 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={date => field.onChange(date)}
+                    onSelect={date => {
+                      field.onChange(date);
+                      if (date) setCalendarOpen(false);
+                    }}
                     disabled={(date) => date > new Date()}
                     initialFocus
                     captionLayout="dropdown"
                     fromYear={1920}
                     toYear={new Date().getFullYear()}
+                    defaultMonth={field.value ? field.value : undefined}
                   />
                 </PopoverContent>
               </Popover>

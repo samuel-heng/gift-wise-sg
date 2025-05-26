@@ -1,4 +1,3 @@
-console.log(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize the Supabase client with your project URL and anon key
@@ -33,6 +32,7 @@ export type Occasion = {
   date: string;
   notes?: string;
   created_at: string;
+  reminder_days_before?: number;
 };
 
 export type Gift = {
@@ -61,4 +61,6 @@ export type UserProfile = {
   id: string;
   name: string;
   yearly_budget: number;
+  email?: string;
+  password?: string;
 }; 

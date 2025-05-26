@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { contactService, userProfileService } from '../lib/db';
+import { contactService, userProfileService, purchaseService } from '../lib/db';
 import type { Contact, UserProfile } from '../lib/supabase';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,6 +8,9 @@ import { ContactForm } from '../components/contacts/ContactForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { format } from 'date-fns';
 
 export function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -16,11 +19,21 @@ export function Contacts() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
+  const [search, setSearch] = useState('');
+  const [relationshipFilter, setRelationshipFilter] = useState('All');
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [giftHistory, setGiftHistory] = useState<any[]>([]);
+  const [giftHistoryLoading, setGiftHistoryLoading] = useState(false);
 
   useEffect(() => {
     async function loadContacts() {
       try {
         const profile = await userProfileService.getDefaultProfile();
+        if (!profile) {
+          setError('You must be logged in to view this page.');
+          setLoading(false);
+          return;
+        }
         setUserProfile(profile);
         const data = await contactService.getAll(profile.id);
         setContacts(data);
@@ -84,14 +97,87 @@ export function Contacts() {
     }
   };
 
+  // Get unique relationship types for filter buttons
+  const relationshipTypes = Array.from(new Set(contacts.map(c => c.relationship).filter(Boolean)));
+
+  // Sort contacts alphabetically
+  const sortedContacts = [...contacts].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Filter contacts by search and relationship
+  const filteredContacts = sortedContacts.filter(contact => {
+    const matchesSearch = contact.name.toLowerCase().includes(search.toLowerCase());
+    const matchesRelationship = relationshipFilter === 'All' || (contact.relationship && contact.relationship === relationshipFilter);
+    return matchesSearch && matchesRelationship;
+  });
+
+  // Fetch gift history when selectedContact changes
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!selectedContact || !userProfile) return;
+      setGiftHistoryLoading(true);
+      try {
+        const allPurchases = await purchaseService.getAll(userProfile.id);
+        // Filter for this contact
+        const contactPurchases = allPurchases.filter(p => {
+          // Try to get contact_id from joined gift, fallback to purchase
+          const giftContactId = p.gifts && 'contact_id' in p.gifts ? p.gifts.contact_id : undefined;
+          return (
+            p.gifts && p.gifts.name &&
+            (giftContactId === selectedContact.id || p.contact_id === selectedContact.id)
+          );
+        });
+        setGiftHistory(contactPurchases);
+      } catch {
+        setGiftHistory([]);
+      }
+      setGiftHistoryLoading(false);
+    }
+    fetchHistory();
+  }, [selectedContact, userProfile]);
+
+  // Back to Contacts handler
+  const handleBackToContacts = () => {
+    setModalOpen(false);
+    setSelectedContact(null);
+  };
+
   return (
     <PageLayout>
       <div className="flex justify-between items-center mb-6 mt-0 flex-shrink-0">
         <h1 className="text-2xl font-bold">Contacts</h1>
-        <Button onClick={handleAdd}>
+        <Button onClick={handleAdd} variant="default">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Contact
         </Button>
+      </div>
+      {/* Search bar and filter buttons */}
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+        <Input
+          type="text"
+          placeholder="Search contacts..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+          <Button
+            variant={relationshipFilter === 'All' ? 'default' : 'outline'}
+            onClick={() => setRelationshipFilter('All')}
+            className=""
+          >
+            All
+          </Button>
+          {relationshipTypes.map(type => (
+            <Button
+              key={type}
+              variant={relationshipFilter === type ? 'default' : 'outline'}
+              onClick={() => setRelationshipFilter(type)}
+              className=""
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          ))}
+        </div>
       </div>
       {loading ? (
         <div className="flex justify-center items-center h-64">Loading contacts...</div>
@@ -99,77 +185,126 @@ export function Contacts() {
         <div className="text-red-500 p-4">Error: {error}</div>
       ) : (
         <>
-          {/* Scrollable contacts grid */}
+          {/* Scrollable contacts list */}
           <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {contacts.map((contact) => (
-                <Card key={contact.id}>
-                  <CardHeader className="flex flex-row justify-between items-center">
-                    <CardTitle>{contact.name}</CardTitle>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(contact)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(contact.id)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {contact.relationship && (
-                        <div className="text-sm text-muted-foreground">{contact.relationship.charAt(0).toUpperCase() + contact.relationship.slice(1)}</div>
-                      )}
-                      {contact.email && (
-                        <div className="flex items-center text-sm">
-                          <Mail className="mr-2 h-4 w-4" />
-                          {contact.email}
-                        </div>
-                      )}
-                      {contact.phone && (
-                        <div className="flex items-center text-sm">
-                          <Phone className="mr-2 h-4 w-4" />
-                          {contact.phone}
-                        </div>
-                      )}
-                      {contact.birthday && (
-                        <div className="flex items-center text-sm">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {new Date(contact.birthday).toLocaleDateString()}
-                        </div>
-                      )}
-                      {contact.preferences && (
-                        <div className="text-sm"><b>Preferences:</b> {contact.preferences}</div>
-                      )}
-                      {contact.notes && (
-                        <div className="text-sm"><b>Notes:</b> {contact.notes}</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="flex flex-col gap-1">
+              {filteredContacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="flex items-center gap-4 px-4 py-3 bg-white rounded-lg shadow-sm mb-1 cursor-pointer hover:bg-gray-50 transition"
+                  onClick={() => { setSelectedContact(contact); setModalOpen(true); }}
+                >
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#233A6A] flex items-center justify-center text-white font-bold text-lg uppercase">
+                    {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="font-medium text-base truncate">{contact.name}</span>
+                    {contact.relationship && (
+                      <span className="text-sm text-muted-foreground capitalize truncate">{contact.relationship}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDelete(contact.id); }}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
           <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl w-full">
+              <div className="mb-6 flex items-center">
+                <Button
+                  onClick={handleBackToContacts}
+                  variant="default"
+                  className="bg-[#233A6A] hover:bg-[#1a2b4d] text-white px-4 py-2 flex items-center gap-2"
+                >
+                  <span className="text-lg">←</span> Back to Contacts
+                </Button>
+              </div>
               <DialogHeader>
-                <DialogTitle>{editContact ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
+                <DialogTitle>Contact Details</DialogTitle>
               </DialogHeader>
-              <DialogDescription>
-                {editContact ? 'Update the details for this contact.' : 'Fill in the details to add a new contact.'}
-              </DialogDescription>
-              <ContactForm
-                initialValues={editContact ? {
-                  ...editContact,
-                  birthday: editContact.birthday ? new Date(editContact.birthday) : undefined,
-                } : {}}
-                onSubmit={handleSubmit}
-                isEditing={!!editContact}
-              />
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              </DialogFooter>
+              {selectedContact || editContact === null ? (
+                <>
+                  <div className="text-xl font-semibold mb-2">{editContact ? editContact.name : selectedContact?.name || 'New Contact'}</div>
+                  <Tabs defaultValue="details" className="w-full mt-2">
+                    <TabsList className="w-full mb-6 flex justify-center gap-0 bg-[#f4f6fb] rounded-lg p-1">
+                      <TabsTrigger value="details" className="w-1/2 py-3 text-base rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm text-center">Details</TabsTrigger>
+                      <TabsTrigger value="history" className="w-1/2 py-3 text-base rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm text-center" disabled={editContact === null}>Gift History</TabsTrigger>
+                    </TabsList>
+                    <div className="relative h-[500px] overflow-y-auto px-1">
+                      <TabsContent value="details" className="h-full">
+                        <div className="h-full flex flex-col">
+                          <ContactForm
+                            initialValues={
+                              editContact
+                                ? {
+                                    ...editContact,
+                                    birthday: editContact.birthday ? new Date(editContact.birthday) : undefined,
+                                  }
+                                : {
+                                    name: '',
+                                    email: '',
+                                    phone: '',
+                                    relationship: '',
+                                    birthday: undefined,
+                                    preferences: '',
+                                    notes: '',
+                                  }
+                            }
+                            onSubmit={handleSubmit}
+                            isEditing={!!editContact}
+                          />
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="history" className="h-full">
+                        <div className="h-full flex flex-col">
+                          {editContact === null ? (
+                            <div className="text-center py-8 text-muted-foreground">No gift history for a new contact.</div>
+                          ) : giftHistoryLoading ? (
+                            <div className="text-center py-8">Loading gift history...</div>
+                          ) : giftHistory.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">No gift history found for this contact.</div>
+                          ) : (
+                            <div className="space-y-6">
+                              {Object.entries(
+                                giftHistory.reduce((acc, p) => {
+                                  const year = new Date(p.purchase_date).getFullYear();
+                                  acc[year] = acc[year] || [];
+                                  acc[year].push(p);
+                                  return acc;
+                                }, {} as Record<string, any[]>)
+                              ).sort((a, b) => Number(b[0]) - Number(a[0])).map(([year, purchases]) => (
+                                <div key={year}>
+                                  <div className="font-semibold text-lg mb-2">{year}</div>
+                                  <div className="space-y-3">
+                                    {(purchases as any[]).map((p, idx) => (
+                                      <div key={idx} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                                        <div>
+                                          <div className="font-medium">{p.gifts.name}</div>
+                                          <div className="text-sm text-muted-foreground">
+                                            {p.gifts.occasions?.occasion_type || ''}
+                                            {p.gifts.occasions?.occasion_type && p.purchase_date ? ' • ' : ''}
+                                            {p.purchase_date ? format(new Date(p.purchase_date), 'MMM d, yyyy') : ''}
+                                          </div>
+                                        </div>
+                                        <div className="font-semibold bg-gray-100 rounded-full px-3 py-1 text-sm">${p.price.toFixed(2)}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </>
+              ) : null}
             </DialogContent>
           </Dialog>
         </>

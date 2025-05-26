@@ -12,16 +12,18 @@ app.use(express.json());
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post("/api/gift-ideas", async (req, res) => {
-  const { recipient, occasion, preferences, pastPurchases } = req.body;
+  const { recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases } = req.body;
 
-  // Improved system prompt
+  // Sharpened system prompt
   const systemPrompt = `
-You are a helpful gift recommendation assistant. Given a recipient's name, their preferences, the occasion (which may be "None"), and a list of their past purchases, suggest 3 realistic, thoughtful gift ideas. Avoid suggesting gifts similar to recent purchases. For each, provide a short name and a 1-2 sentence reason. Only suggest gifts that are likely to be available for purchase online.
+You are a helpful gift recommendation assistant. Given the recipient's relationship to the user, any notes about the recipient, the occasion (which may be \"None\"), any notes about the occasion, the recipient's preferences, and a list of their past purchases, suggest 3 realistic, thoughtful gift ideas. Avoid suggesting gifts similar to recent purchases. For each, provide a short name and a 1-2 sentence reason. Only suggest gifts that are likely to be available for purchase online.
 `;
 
   const userPrompt = `
-Recipient: ${recipient}
+Relationship: ${relationship}
+Recipient Notes: ${contactNotes}
 Occasion: ${occasion}
+Occasion Notes: ${occasionNotes}
 Preferences: ${preferences}
 Past Purchases: ${Array.isArray(pastPurchases) && pastPurchases.length > 0 ? pastPurchases.join(", ") : "None"}
 
@@ -101,7 +103,11 @@ async function sendRemindersAndNudges() {
         html: `<h2>Don't forget!</h2>
           <p>${occasion.contacts.name}'s ${occasion.occasion_type} is coming up on <b>${occasion.date}</b>.</p>
           <p>Notes: ${occasion.notes || 'None'}</p>
-          <p>Log in to GiftWise for gift ideas!</p>`
+          <p>
+            <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
+              Log in to GiftWise for gift ideas!
+            </a>
+          </p>`
       });
       // Update reminder_sent_date
       await occasionService.update(occasion.id, { reminder_sent_date: todayStr });
@@ -114,7 +120,11 @@ async function sendRemindersAndNudges() {
         subject: `Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type}?`,
         html: `<h2>How did it go?</h2>
           <p>Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type} on ${occasion.date}?</p>
-          <p>Please update your purchase history in GiftWise!</p>`
+          <p>
+            <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
+              Please update your purchase history in GiftWise!
+            </a>
+          </p>`
       });
       // Update nudge_sent_date
       await occasionService.update(occasion.id, { nudge_sent_date: todayStr });

@@ -18,17 +18,24 @@ function getApiUrl() {
  * Fetches gift ideas from the backend AI service.
  * @param {Object} params
  * @param {string} params.recipient - The recipient's name.
+ * @param {string} params.relationship - The recipient's relationship to the user.
+ * @param {string} params.contactNotes - Notes about the recipient.
  * @param {string} params.occasion - The occasion (e.g., "birthday").
+ * @param {string} params.occasionNotes - Notes about the occasion.
  * @param {string} params.preferences - Comma-separated preferences/interests.
+ * @param {Array<string>} params.pastPurchases - List of past purchases.
  * @returns {Promise<Array<{name: string, reason: string}>>}
  */
-export async function fetchGiftIdeas({ recipient, occasion, preferences, pastPurchases }) {
+export async function fetchGiftIdeas({ recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases }) {
   const apiUrl = getApiUrl();
   const requestUrl = `${apiUrl}/api/gift-ideas`;
   try {
     const response = await axios.post(requestUrl, {
       recipient,
+      relationship,
+      contactNotes,
       occasion,
+      occasionNotes,
       preferences,
       pastPurchases,
     });

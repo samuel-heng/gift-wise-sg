@@ -256,7 +256,10 @@ export function Home() {
         .map(p => p.gifts.name);
       const aiResults = await fetchGiftIdeas({
         recipient: selectedContact.name,
+        relationship: selectedContact.relationship || "",
+        contactNotes: selectedContact.notes || "",
         occasion: selectedOccasion ? selectedOccasion.occasion_type : "None",
+        occasionNotes: selectedOccasion ? selectedOccasion.notes || "" : "",
         preferences: selectedContact.preferences || "",
         pastPurchases,
       });

@@ -47,6 +47,10 @@ const purchaseSchema = z.object({
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
+function isValidDate(d: any): d is Date {
+  return d instanceof Date && !isNaN(d.getTime());
+}
+
 export function History() {
   const [purchases, setPurchases] = useState<any[]>([]); // Use any for now due to deep join
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -189,17 +193,31 @@ export function History() {
     if (editModalOpen) {
       if (editPurchase) {
         const isNoneOccasion = !editPurchase.gifts?.occasion_id;
+        // Log values for debugging
+        console.log('Edit modal open: editPurchase', editPurchase);
+        let occasionId = isNoneOccasion ? 'none' : (editPurchase.gifts?.occasions?.id || '');
+        // Fallback: if not in options, set to 'none'
+        if (occasionId !== 'none' && !occasionOptions.some(o => o.id === occasionId)) {
+          console.warn('OccasionId not found in options, defaulting to none:', occasionId);
+          occasionId = 'none';
+        }
+        let purchaseDate = editPurchase.purchase_date ? new Date(editPurchase.purchase_date) : undefined;
+        if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
+          console.warn('Invalid purchaseDate, defaulting to undefined:', purchaseDate);
+          purchaseDate = undefined;
+        }
         form.reset({
           contactId: isNoneOccasion
             ? (editPurchase.gifts?.contact_id || editPurchase.contact_id || '')
             : (editPurchase.gifts?.occasions?.contact_id || ''),
-          occasionId: isNoneOccasion ? 'none' : (editPurchase.gifts?.occasions?.id || ''),
+          occasionId,
           price: editPurchase.price,
-          purchaseDate: editPurchase.purchase_date ? new Date(editPurchase.purchase_date) : undefined,
+          purchaseDate,
           notes: editPurchase.notes || '',
           category: editPurchase.category || CATEGORY_OPTIONS[0],
           giftName: editPurchase.gifts?.name || '',
         });
+        console.log('Form reset values:', { occasionId, purchaseDate });
       } else {
         form.reset({
           contactId: contacts[0]?.id || '',
@@ -213,7 +231,7 @@ export function History() {
       }
     }
     // eslint-disable-next-line
-  }, [editModalOpen, editPurchase, contacts]);
+  }, [editModalOpen, editPurchase, contacts, occasionOptions]);
 
   // Watch for contact/occasion changes to update dropdowns
   const contactId = form.watch('contactId');
@@ -375,6 +393,10 @@ export function History() {
                         : (purchase.gifts?.occasions?.occasion_type || 'Unknown');
                       const category = purchase.category || 'Other';
                       const Icon = CATEGORY_ICONS[category] || Gift;
+                      const dateObj: Date = new Date(purchase.purchase_date as string | number | Date);
+                      const formattedDate = purchase.purchase_date && isValidDate(dateObj)
+                        ? format(dateObj as any, 'MMM d, yyyy')
+                        : 'Unknown';
                       return (
                         <Card key={purchase.id} className="rounded-xl shadow-none border mb-3 w-full">
                           <div className="flex flex-row items-center justify-between px-6 py-4 w-full">
@@ -391,7 +413,7 @@ export function History() {
                                 <span className="mx-1">•</span>
                                 <span>{occasionName}</span>
                                 <span className="mx-1">•</span>
-                                <span>{purchase.purchase_date ? format(new Date(purchase.purchase_date), 'MMM d, yyyy') : 'Unknown'}</span>
+                                <span>{formattedDate}</span>
                               </div>
                             </div>
                             <div className="flex flex-col items-end ml-4 flex-shrink-0">
@@ -451,27 +473,31 @@ export function History() {
                   <FormField
                     control={form.control}
                     name="occasionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Occasion</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select occasion" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {occasionOptions.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>
-                                {o.occasion_type} ({o.date})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Log value for debugging
+                      console.log('OccasionId field value:', field.value, 'Options:', occasionOptions.map(o => o.id));
+                      return (
+                        <FormItem>
+                          <FormLabel>Occasion</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select occasion" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {occasionOptions.map((o) => (
+                                <SelectItem key={o.id} value={o.id}>
+                                  {o.occasion_type} ({o.date})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -512,43 +538,52 @@ export function History() {
                   <FormField
                     control={form.control}
                     name="purchaseDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Purchase Date</FormLabel>
-                        <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  'w-full pl-3 text-left font-normal',
-                                  !field.value && 'text-muted-foreground'
-                                )}
-                              >
-                                {field.value ? format(field.value instanceof Date ? field.value : new Date(field.value), 'dd/MM/yyyy') : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
-                              onSelect={date => {
-                                field.onChange(date instanceof Date && !isNaN(date) ? date : undefined);
-                                setDatePopoverOpen(false);
-                              }}
-                              initialFocus
-                              captionLayout="dropdown"
-                              fromYear={1920}
-                              toYear={new Date().getFullYear()}
-                              defaultMonth={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Log value for debugging
+                      console.log('PurchaseDate field value:', field.value);
+                      return (
+                        <FormItem>
+                          <FormLabel>Purchase Date</FormLabel>
+                          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    'w-full pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {(() => {
+                                    const dateObj: Date = new Date(field.value as string | number | Date);
+                                    return field.value && isValidDate(dateObj)
+                                      ? format(dateObj as any, 'dd/MM/yyyy')
+                                      : <span>Pick a date</span>;
+                                  })()}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
+                                onSelect={date => {
+                                  field.onChange(date instanceof Date && !isNaN(date) ? date : undefined);
+                                  setDatePopoverOpen(false);
+                                }}
+                                initialFocus
+                                captionLayout="dropdown"
+                                fromYear={1920}
+                                toYear={new Date().getFullYear()}
+                                defaultMonth={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}

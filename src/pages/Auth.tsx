@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { userProfileService } from '@/lib/db';
+import { createUserProfile } from '@/services/userProfileService';
 import { Eye, EyeOff } from 'lucide-react';
 import { HashRouter } from 'react-router-dom';
 
@@ -67,14 +67,11 @@ export default function AuthPage() {
             setError(error.message || 'Failed to complete sign in.');
           } else if (data?.user) {
             // After session is set, create user profile if needed
-            const apiUrl = import.meta.env.VITE_API_URL || "";
-            await import('axios').then(({ default: axios }) =>
-              axios.post(`${apiUrl}/api/user-profile`, {
-                id: data.user.id,
-                name: data.user.user_metadata?.name || data.user.email,
-                email: data.user.email
-              })
-            ).catch(() => {}); // Ignore error if already exists
+            await createUserProfile({
+              id: data.user.id,
+              name: data.user.user_metadata?.name || data.user.email,
+              email: data.user.email
+            }).catch(() => {}); // Ignore error if already exists
             navigate('/');
           }
         });
@@ -94,14 +91,11 @@ export default function AuthPage() {
         result = await supabase.auth.signInWithPassword({ email, password });
         if (result.data?.user) {
           // After login, ensure user profile exists
-          const apiUrl = import.meta.env.VITE_API_URL || "";
-          await import('axios').then(({ default: axios }) =>
-            axios.post(`${apiUrl}/api/user-profile`, {
-              id: result.data.user.id,
-              name: result.data.user.user_metadata?.name || result.data.user.email,
-              email: result.data.user.email
-            })
-          ).catch(() => {}); // Ignore error if already exists
+          await createUserProfile({
+            id: result.data.user.id,
+            name: result.data.user.user_metadata?.name || result.data.user.email,
+            email: result.data.user.email
+          }).catch(() => {}); // Ignore error if already exists
           navigate('/');
         }
       } else {

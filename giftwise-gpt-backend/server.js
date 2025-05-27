@@ -85,9 +85,13 @@ async function sendRemindersAndNudges() {
 
     // 2. Get all occasions for the user
     const occasions = await occasionSvc.getAll(user.id);
-
     // 3. Get all purchases for the user
     const purchases = await purchaseSvc.getAll(user.id);
+
+    // Log loaded data
+    console.log('Processing user:', { userId: user.id, email: user.email });
+    console.log('Loaded occasions:', occasions);
+    console.log('Loaded purchases:', purchases);
 
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -121,6 +125,10 @@ async function sendRemindersAndNudges() {
         nudges.push(occasion);
       }
     }
+
+    // Log calculated reminders and nudges
+    console.log('Calculated reminders:', reminders);
+    console.log('Calculated nudges:', nudges);
 
     // --- Send Reminder Emails ---
     for (const occasion of reminders) {

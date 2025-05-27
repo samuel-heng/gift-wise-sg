@@ -168,63 +168,65 @@ const purchaseService = {
   },
 };
 
-// User Profile operations
-const userProfileService = {
-  async getDefaultProfile(userId) {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async create({ id, name, email }) {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .insert({ id, name, email })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async updateBudget(id, yearly_budget) {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update({ yearly_budget })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async getAll() {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*');
-    if (error) throw error;
-    return data;
-  },
-  async updateProfile(id, { name, email, password }) {
-    const updateFields = {};
-    if (name !== undefined) updateFields.name = name;
-    if (email !== undefined) updateFields.email = email;
-    if (password !== undefined) updateFields.password = password;
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update(updateFields)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-};
+// Accept a Supabase client instance for RLS operations
+function makeUserProfileService(supabase) {
+  return {
+    async getDefaultProfile(userId) {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async create({ id, name, email }) {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({ id, name, email })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async updateBudget(id, yearly_budget) {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ yearly_budget })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async getAll() {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    async updateProfile(id, { name, email, password }) {
+      const updateFields = {};
+      if (name !== undefined) updateFields.name = name;
+      if (email !== undefined) updateFields.email = email;
+      if (password !== undefined) updateFields.password = password;
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update(updateFields)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  };
+}
 
 module.exports = {
   contactService,
   occasionService,
   giftService,
   purchaseService,
-  userProfileService,
+  makeUserProfileService,
 }; 

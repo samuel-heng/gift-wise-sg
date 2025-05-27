@@ -3,7 +3,8 @@ const cors = require('cors');
 const { OpenAI } = require('openai');
 const { sendEmail } = require('./emailService.js');
 const cron = require('node-cron');
-const { userProfileService, occasionService, purchaseService } = require('./src/lib/db.js'); // adjust path if needed
+const { makeUserProfileService, occasionService, purchaseService } = require('./src/lib/db.js');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
@@ -51,7 +52,7 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
 // --- Reminder/Nudge Logic ---
 async function sendRemindersAndNudges() {
   // 1. Fetch all users
-  const users = await userProfileService.getAll();
+  const users = await makeUserProfileService.getAll();
 
   for (const user of users) {
     if (!user.email) continue;
@@ -147,12 +148,23 @@ app.post('/api/trigger-reminders', async (req, res) => {
   }
 });
 
+function getSupabaseClientForUser(jwt) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } }
+  });
+}
+
 // Update user profile endpoint
 app.put('/api/user-profile', async (req, res) => {
   const { id, name, email, password } = req.body;
-  if (!id) {
-    return res.status(400).json({ error: 'User profile id is required.' });
+  const jwt = req.headers.authorization?.split(' ')[1];
+  if (!id || !jwt) {
+    return res.status(400).json({ error: 'User profile id and Authorization token are required.' });
   }
+  const supabase = getSupabaseClientForUser(jwt);
+  const userProfileService = makeUserProfileService(supabase);
   try {
     const updated = await userProfileService.updateProfile(id, { name, email, password });
     res.json(updated);
@@ -163,10 +175,13 @@ app.put('/api/user-profile', async (req, res) => {
 
 app.post('/api/user-profile', async (req, res) => {
   const { id, name, email } = req.body;
-  if (!id || !name || !email) {
-    console.error('User profile creation error: missing required fields', req.body);
-    return res.status(400).json({ error: 'id, name, and email are required.' });
+  const jwt = req.headers.authorization?.split(' ')[1];
+  if (!id || !name || !email || !jwt) {
+    console.error('User profile creation error: missing required fields or Authorization token', req.body);
+    return res.status(400).json({ error: 'id, name, email, and Authorization token are required.' });
   }
+  const supabase = getSupabaseClientForUser(jwt);
+  const userProfileService = makeUserProfileService(supabase);
   try {
     // Try to create, but if user already exists, return existing profile
     const data = await userProfileService.create({ id, name, email });

@@ -82,6 +82,9 @@ async function sendRemindersAndNudges() {
   // 1. Fetch all users
   const users = await userProfileService.getAll();
 
+  // Log the Supabase key in use at startup
+  console.log('Supabase key in use:', (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY).slice(0, 8));
+
   for (const user of users) {
     if (!user.email) continue;
 
@@ -147,6 +150,9 @@ async function sendRemindersAndNudges() {
               </a>
             </p>`
         });
+        // Log DB role before update
+        const { data: whoami } = await supabase.rpc('get_my_role');
+        console.log('Current DB role before reminder update:', whoami);
         // Log before update
         console.log('About to update reminder_sent_date', { occasionId: occasion.id, update: { reminder_sent_date: todayStr }, fullOccasion: occasion });
         // Update reminder_sent_date
@@ -174,6 +180,9 @@ async function sendRemindersAndNudges() {
               </a>
             </p>`
         });
+        // Log DB role before update
+        const { data: whoami } = await supabase.rpc('get_my_role');
+        console.log('Current DB role before nudge update:', whoami);
         // Log before update
         console.log('About to update nudge_sent_date', { occasionId: occasion.id, update: { nudge_sent_date: todayStr }, fullOccasion: occasion });
         // Update nudge_sent_date

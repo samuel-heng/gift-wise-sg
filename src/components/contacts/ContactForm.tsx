@@ -165,7 +165,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent disablePortal className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}

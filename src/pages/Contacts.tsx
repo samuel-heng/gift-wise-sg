@@ -195,7 +195,7 @@ export function Contacts() {
                 <div
                   key={contact.id}
                   className="flex items-center gap-4 px-4 py-3 bg-white rounded-lg shadow-sm mb-1 cursor-pointer hover:bg-gray-50 transition"
-                  onClick={() => { setSelectedContact(contact); setModalOpen(true); }}
+                  onClick={() => { setEditContact(contact); setSelectedContact(contact); setModalOpen(true); }}
                 >
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#233A6A] flex items-center justify-center text-white font-bold text-lg uppercase">
                     {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}

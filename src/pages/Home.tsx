@@ -538,7 +538,7 @@ export function Home() {
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent disablePortal className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : undefined)}

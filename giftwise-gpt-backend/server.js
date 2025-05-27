@@ -168,9 +168,19 @@ app.post('/api/user-profile', async (req, res) => {
     return res.status(400).json({ error: 'id, name, and email are required.' });
   }
   try {
+    // Try to create, but if user already exists, return existing profile
     const data = await userProfileService.create({ id, name, email });
     res.json(data);
   } catch (err) {
+    // If duplicate key error, fetch and return existing profile
+    if (err.code === '23505' || (err.message && err.message.includes('duplicate key'))) {
+      try {
+        const existing = await userProfileService.getDefaultProfile(id);
+        return res.json(existing);
+      } catch (fetchErr) {
+        return res.status(500).json({ error: fetchErr.message });
+      }
+    }
     console.error('User profile creation error:', err);
     res.status(500).json({ error: err.message });
   }

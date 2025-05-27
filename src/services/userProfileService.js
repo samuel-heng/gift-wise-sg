@@ -16,7 +16,7 @@ export async function updateUserProfile({ id, name, email, password }) {
     console.error('No Supabase JWT found. User not authenticated.');
     throw new Error('User is not authenticated.');
   }
-  const headers = { Authorization: `Bearer ${session.access_token}` };
+  const headers = { Authorization: `Bearer ${session.access_token}`, Accept: 'application/json' };
   console.log('updateUserProfile: JWT:', session.access_token);
   console.log('updateUserProfile: payload:', { id, name, email, password });
   const response = await axios.put(`${apiUrl}/api/user-profile`, {
@@ -36,7 +36,7 @@ export async function createUserProfile({ id, name, email }) {
     console.error('No Supabase JWT found. User not authenticated.');
     throw new Error('User is not authenticated.');
   }
-  const headers = { Authorization: `Bearer ${session.access_token}` };
+  const headers = { Authorization: `Bearer ${session.access_token}`, Accept: 'application/json' };
   console.log('createUserProfile: JWT:', session.access_token);
   console.log('createUserProfile: payload:', { id, name, email });
   const response = await axios.post(`${apiUrl}/api/user-profile`, {

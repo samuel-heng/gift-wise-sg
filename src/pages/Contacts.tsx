@@ -61,11 +61,13 @@ export function Contacts() {
 
   const handleAdd = () => {
     setEditContact(null);
+    setSelectedContact(null);
     setModalOpen(true);
   };
 
   const handleEdit = (contact: Contact) => {
     setEditContact(contact);
+    setSelectedContact(contact);
     setModalOpen(true);
   };
 
@@ -138,6 +140,7 @@ export function Contacts() {
   // Back to Contacts handler
   const handleBackToContacts = () => {
     setModalOpen(false);
+    setEditContact(null);
     setSelectedContact(null);
   };
 

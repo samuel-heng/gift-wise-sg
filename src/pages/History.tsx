@@ -566,7 +566,7 @@ export function History() {
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="calendar-popover w-auto p-0 z-[9999] pointer-events-auto" align="start">
+                            <PopoverContent disablePortal className="calendar-popover w-auto p-0 z-[9999] pointer-events-auto" align="start">
                               <Calendar
                                 mode="single"
                                 selected={coercedValue}

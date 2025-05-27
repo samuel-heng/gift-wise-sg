@@ -69,7 +69,10 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
 // --- Reminder/Nudge Logic ---
 async function sendRemindersAndNudges() {
   // Instantiate services with supabase client
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
+  );
   const userProfileService = makeUserProfileService(supabase);
   const occasionSvc = require('./src/lib/db.js').occasionService;
   const purchaseSvc = require('./src/lib/db.js').purchaseService;

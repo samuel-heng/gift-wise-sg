@@ -22,6 +22,7 @@ export default function AuthPage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [processingMagicLink, setProcessingMagicLink] = useState(false);
   const navigate = useNavigate();
 
   // Hide header and bottom nav when on Auth page
@@ -45,6 +46,45 @@ export default function AuthPage() {
     };
   }, []);
 
+  useEffect(() => {
+    // Handle Supabase magic link (email confirmation) hash fragment
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      setProcessingMagicLink(true);
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash.replace(/&/g, '&'));
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      // Get username from query param if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const username = urlParams.get('username');
+      if (access_token && refresh_token) {
+        supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        }).then(async ({ error, data }) => {
+          setProcessingMagicLink(false);
+          if (error) {
+            setError(error.message || 'Failed to complete sign in.');
+          } else if (data?.user) {
+            // After session is set, create user profile if needed
+            const apiUrl = import.meta.env.VITE_API_URL || "";
+            await import('axios').then(({ default: axios }) =>
+              axios.post(`${apiUrl}/api/user-profile`, {
+                id: data.user.id,
+                name: username || data.user.user_metadata?.name || data.user.email,
+                email: data.user.email
+              })
+            ).catch(() => {}); // Ignore error if already exists
+            navigate('/');
+          }
+        });
+      } else {
+        setProcessingMagicLink(false);
+        setError('Invalid authentication link.');
+      }
+    }
+  }, [navigate]);
+
   const handleAuth = async (type: 'login' | 'signup') => {
     setLoading(true);
     setError(null);
@@ -52,6 +92,18 @@ export default function AuthPage() {
       let result;
       if (type === 'login') {
         result = await supabase.auth.signInWithPassword({ email, password });
+        if (result.data?.user) {
+          // After login, ensure user profile exists
+          const apiUrl = import.meta.env.VITE_API_URL || "";
+          await import('axios').then(({ default: axios }) =>
+            axios.post(`${apiUrl}/api/user-profile`, {
+              id: result.data.user.id,
+              name: result.data.user.user_metadata?.name || result.data.user.email,
+              email: result.data.user.email
+            })
+          ).catch(() => {}); // Ignore error if already exists
+          navigate('/');
+        }
       } else {
         if (!username.trim()) {
           setError('Username is required');
@@ -62,28 +114,14 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: "https://giftwisesg.com/auth"
+            emailRedirectTo: "https://giftwisesg.com/auth?username=" + encodeURIComponent(username)
           }
         });
         if (result.error) {
           setError(result.error.message);
-        } else if (result.data?.user) {
-          // Create user profile in backend
-          const apiUrl = import.meta.env.VITE_API_URL || "";
-          await import('axios').then(({ default: axios }) =>
-            axios.post(`${apiUrl}/api/user-profile`, {
-              id: result.data.user.id,
-              name: username,
-              email: email
-            })
-          );
-          setSignupSuccess(true);
         } else {
-          setError('');
+          setSignupSuccess(true);
         }
-      }
-      if (type === 'login' && result.data?.user) {
-        navigate('/');
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -111,6 +149,11 @@ export default function AuthPage() {
         <div className="flex flex-col items-center mb-6">
           <span className="text-2xl font-bold text-[#233A6A] mt-2">Welcome to GiftWise!</span>
         </div>
+        {processingMagicLink && (
+          <div className="mb-4 text-blue-700 text-center font-medium">
+            Completing sign in, please wait...
+          </div>
+        )}
         {signupSuccess && (
           <div className="mb-4 text-green-700 text-center font-medium">
             Check your email for a confirmation link before logging in.

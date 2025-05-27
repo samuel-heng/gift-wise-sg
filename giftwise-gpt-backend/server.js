@@ -3,7 +3,7 @@ const cors = require('cors');
 const { OpenAI } = require('openai');
 const { sendEmail } = require('./emailService.js');
 const cron = require('node-cron');
-const { makeUserProfileService, occasionService, purchaseService } = require('./src/lib/db.js');
+const { makeUserProfileService, makeOccasionService, makePurchaseService } = require('./src/lib/db.js');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -74,8 +74,8 @@ async function sendRemindersAndNudges() {
     process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
   );
   const userProfileService = makeUserProfileService(supabase);
-  const occasionSvc = require('./src/lib/db.js').occasionService;
-  const purchaseSvc = require('./src/lib/db.js').purchaseService;
+  const occasionSvc = makeOccasionService(supabase);
+  const purchaseSvc = makePurchaseService(supabase);
 
   // 1. Fetch all users
   const users = await userProfileService.getAll();
@@ -139,6 +139,9 @@ async function sendRemindersAndNudges() {
         });
         // Update reminder_sent_date
         const updateResult = await occasionSvc.update(occasion.id, { reminder_sent_date: todayStr });
+        if (!updateResult) {
+          console.warn('No rows updated for reminder_sent_date', { occasionId: occasion.id, userId: user.id });
+        }
         console.log('Updated reminder_sent_date', { occasionId: occasion.id, userId: user.id, updateResult });
       } catch (err) {
         console.error('Reminder email/send error:', err, { user, occasion });
@@ -161,6 +164,9 @@ async function sendRemindersAndNudges() {
         });
         // Update nudge_sent_date
         const updateResult = await occasionSvc.update(occasion.id, { nudge_sent_date: todayStr });
+        if (!updateResult) {
+          console.warn('No rows updated for nudge_sent_date', { occasionId: occasion.id, userId: user.id });
+        }
         console.log('Updated nudge_sent_date', { occasionId: occasion.id, userId: user.id, updateResult });
       } catch (err) {
         console.error('Nudge email/send error:', err, { user, occasion });

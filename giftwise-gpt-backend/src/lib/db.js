@@ -49,52 +49,54 @@ const contactService = {
 };
 
 // Occasion operations
-const occasionService = {
-  async getAll(userId) {
-    const { data, error } = await supabase
-      .from('occasions')
-      .select('*, contacts(name)')
-      .eq('user_id', userId)
-      .order('date');
-    if (error) throw error;
-    return data;
-  },
-  async getByContactId(contactId) {
-    const { data, error } = await supabase
-      .from('occasions')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('date');
-    if (error) throw error;
-    return data;
-  },
-  async create(occasion, userId) {
-    const { data, error } = await supabase
-      .from('occasions')
-      .insert({ ...occasion, user_id: userId })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id, occasion) {
-    const { data, error } = await supabase
-      .from('occasions')
-      .update(occasion)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id) {
-    const { error } = await supabase
-      .from('occasions')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-  }
-};
+function makeOccasionService(supabase) {
+  return {
+    async getAll(userId) {
+      const { data, error } = await supabase
+        .from('occasions')
+        .select('*, contacts(name)')
+        .eq('user_id', userId)
+        .order('date');
+      if (error) throw error;
+      return data;
+    },
+    async getByContactId(contactId) {
+      const { data, error } = await supabase
+        .from('occasions')
+        .select('*')
+        .eq('contact_id', contactId)
+        .order('date');
+      if (error) throw error;
+      return data;
+    },
+    async create(occasion, userId) {
+      const { data, error } = await supabase
+        .from('occasions')
+        .insert({ ...occasion, user_id: userId })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async update(id, occasion) {
+      const { data, error } = await supabase
+        .from('occasions')
+        .update(occasion)
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    async delete(id) {
+      const { error } = await supabase
+        .from('occasions')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    }
+  };
+}
 
 // Gift operations
 const giftService = {
@@ -130,43 +132,45 @@ const giftService = {
 };
 
 // Purchase operations
-const purchaseService = {
-  async getAll(userId) {
-    const { data, error } = await supabase
-      .from('purchases')
-      .select('*, gifts(id, name, occasion_id, contact_id, occasions:occasion_id(id, occasion_type, contact_id, contacts:contact_id(name)))')
-      .eq('user_id', userId)
-      .order('purchase_date', { ascending: false });
-    if (error) throw error;
-    return data;
-  },
-  async create(purchase, userId) {
-    const { data, error } = await supabase
-      .from('purchases')
-      .insert({ ...purchase, user_id: userId })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id, purchase) {
-    const { data, error } = await supabase
-      .from('purchases')
-      .update(purchase)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id) {
-    const { error } = await supabase
-      .from('purchases')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-  },
-};
+function makePurchaseService(supabase) {
+  return {
+    async getAll(userId) {
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*, gifts(id, name, occasion_id, contact_id, occasions:occasion_id(id, occasion_type, contact_id, contacts:contact_id(name)))')
+        .eq('user_id', userId)
+        .order('purchase_date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    async create(purchase, userId) {
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert({ ...purchase, user_id: userId })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async update(id, purchase) {
+      const { data, error } = await supabase
+        .from('purchases')
+        .update(purchase)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async delete(id) {
+      const { error } = await supabase
+        .from('purchases')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+  };
+}
 
 // Accept a Supabase client instance for RLS operations
 function makeUserProfileService(supabase) {
@@ -225,8 +229,8 @@ function makeUserProfileService(supabase) {
 
 module.exports = {
   contactService,
-  occasionService,
   giftService,
-  purchaseService,
+  makeOccasionService,
+  makePurchaseService,
   makeUserProfileService,
 }; 

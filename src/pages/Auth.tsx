@@ -114,7 +114,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: "https://giftwisesg.com/auth?username=" + encodeURIComponent(username)
+            emailRedirectTo: "https://giftwisesg.com?username=" + encodeURIComponent(username)
           }
         });
         if (result.error) {

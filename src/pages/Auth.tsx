@@ -113,8 +113,8 @@ export default function AuthPage() {
             data: { name: username }
           }
         });
-        if (result.error) {
-          setError(result.error.message);
+      if (result.error) {
+        setError(result.error.message);
         } else {
           setSignupSuccess(true);
         }

@@ -483,25 +483,25 @@ export function History() {
                       // Log value for debugging
                       console.log('OccasionId field value:', field.value, 'Options:', occasionOptions.map(o => o.id));
                       return (
-                        <FormItem>
-                          <FormLabel>Occasion</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select occasion" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {occasionOptions.map((o) => (
-                                <SelectItem key={o.id} value={o.id}>
-                                  {o.occasion_type} ({o.date})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
+                      <FormItem>
+                        <FormLabel>Occasion</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select occasion" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {occasionOptions.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.occasion_type} ({o.date})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                       );
                     }}
                   />
@@ -549,42 +549,42 @@ export function History() {
                       const coercedValue = coerceToDate(field.value);
                       console.log('PurchaseDate field coerced value:', coercedValue, 'typeof:', typeof coercedValue);
                       return (
-                        <FormItem>
-                          <FormLabel>Purchase Date</FormLabel>
-                          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    'w-full pl-3 text-left font-normal',
+                      <FormItem>
+                        <FormLabel>Purchase Date</FormLabel>
+                        <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  'w-full pl-3 text-left font-normal',
                                     !coercedValue && 'text-muted-foreground'
-                                  )}
-                                >
+                                )}
+                              >
                                   {coercedValue ? format(coercedValue as any, 'dd/MM/yyyy') : <span>Pick a date</span>}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
                             <PopoverContent disablePortal className="calendar-popover w-auto p-0 z-[9999] pointer-events-auto" align="start">
-                              <Calendar
-                                mode="single"
+                            <Calendar
+                              mode="single"
                                 selected={coercedValue}
-                                onSelect={date => {
+                              onSelect={date => {
                                   console.log('Calendar onSelect date:', date, 'typeof:', typeof date);
                                   field.onChange(date instanceof Date && !isNaN(date.getTime()) ? date : undefined);
-                                  setDatePopoverOpen(false);
-                                }}
-                                initialFocus
-                                captionLayout="dropdown"
-                                fromYear={1920}
-                                toYear={new Date().getFullYear()}
+                                setDatePopoverOpen(false);
+                              }}
+                              initialFocus
+                              captionLayout="dropdown"
+                              fromYear={1920}
+                              toYear={new Date().getFullYear()}
                                 defaultMonth={coercedValue}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
                       );
                     }}
                   />

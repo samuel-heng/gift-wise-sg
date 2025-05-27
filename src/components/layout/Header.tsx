@@ -51,7 +51,7 @@ export const Header = () => {
         if (profile) {
           setUser({ name: profile.name || profile.email || 'Guest', email: profile.email });
           setEditForm({ name: profile.name || '', email: profile.email || '', password: profile.password || '' });
-          setUserId(profile.id);
+        setUserId(profile.id);
         } else {
           setUser({ name: 'Guest' });
         }

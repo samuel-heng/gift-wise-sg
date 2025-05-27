@@ -68,17 +68,23 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
 
 // --- Reminder/Nudge Logic ---
 async function sendRemindersAndNudges() {
+  // Instantiate services with supabase client
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  const userProfileService = makeUserProfileService(supabase);
+  const occasionSvc = require('./src/lib/db.js').occasionService;
+  const purchaseSvc = require('./src/lib/db.js').purchaseService;
+
   // 1. Fetch all users
-  const users = await makeUserProfileService.getAll();
+  const users = await userProfileService.getAll();
 
   for (const user of users) {
     if (!user.email) continue;
 
     // 2. Get all occasions for the user
-    const occasions = await occasionService.getAll(user.id);
+    const occasions = await occasionSvc.getAll(user.id);
 
     // 3. Get all purchases for the user
-    const purchases = await purchaseService.getAll(user.id);
+    const purchases = await purchaseSvc.getAll(user.id);
 
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -128,7 +134,7 @@ async function sendRemindersAndNudges() {
           </p>`
       });
       // Update reminder_sent_date
-      await occasionService.update(occasion.id, { reminder_sent_date: todayStr });
+      await occasionSvc.update(occasion.id, { reminder_sent_date: todayStr });
     }
 
     // --- Send Nudge Emails ---
@@ -145,7 +151,7 @@ async function sendRemindersAndNudges() {
           </p>`
       });
       // Update nudge_sent_date
-      await occasionService.update(occasion.id, { nudge_sent_date: todayStr });
+      await occasionSvc.update(occasion.id, { nudge_sent_date: todayStr });
     }
   }
 }

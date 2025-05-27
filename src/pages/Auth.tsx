@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -52,15 +53,37 @@ export default function AuthPage() {
       if (type === 'login') {
         result = await supabase.auth.signInWithPassword({ email, password });
       } else {
-        result = await supabase.auth.signUp({ email, password });
-        setSignupSuccess(true);
+        if (!username.trim()) {
+          setError('Username is required');
+          setLoading(false);
+          return;
+        }
+        result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: "https://giftwisesg.com/auth"
+          }
+        });
+        if (result.error) {
+          setError(result.error.message);
+        } else if (result.data?.user) {
+          // Create user profile in backend
+          const apiUrl = import.meta.env.VITE_API_URL || "";
+          await import('axios').then(({ default: axios }) =>
+            axios.post(`${apiUrl}/api/user-profile`, {
+              id: result.data.user.id,
+              name: username,
+              email: email
+            })
+          );
+          setSignupSuccess(true);
+        } else {
+          setError('');
+        }
       }
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.data?.user) {
+      if (type === 'login' && result.data?.user) {
         navigate('/');
-      } else if (type === 'signup') {
-        setError('');
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -175,12 +198,19 @@ export default function AuthPage() {
               className="space-y-4"
             >
               <Input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                required
+                autoFocus={tab === 'signup'}
+              />
+              <Input
                 type="email"
                 placeholder="Email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                autoFocus={tab === 'signup'}
               />
               <div className="relative">
                 <Input

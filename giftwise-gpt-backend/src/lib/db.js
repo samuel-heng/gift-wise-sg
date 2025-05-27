@@ -179,6 +179,15 @@ const userProfileService = {
     if (error) throw error;
     return data;
   },
+  async create({ id, name, email }) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .insert({ id, name, email })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
   async updateBudget(id, yearly_budget) {
     const { data, error } = await supabase
       .from('user_profiles')

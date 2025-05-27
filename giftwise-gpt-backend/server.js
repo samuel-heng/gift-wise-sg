@@ -161,5 +161,18 @@ app.put('/api/user-profile', async (req, res) => {
   }
 });
 
+app.post('/api/user-profile', async (req, res) => {
+  const { id, name, email } = req.body;
+  if (!id || !name || !email) {
+    return res.status(400).json({ error: 'id, name, and email are required.' });
+  }
+  try {
+    const data = await userProfileService.create({ id, name, email });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

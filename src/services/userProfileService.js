@@ -10,7 +10,7 @@ import axios from "axios";
  * @returns {Promise<Object>} The updated user profile.
  */
 export async function updateUserProfile({ id, name, email, password }) {
-  const apiUrl = process.env.REACT_APP_API_URL || "";
+  const apiUrl = import.meta.env.VITE_API_URL || "";
   const response = await axios.put(`${apiUrl}/api/user-profile`, {
     id,
     name,

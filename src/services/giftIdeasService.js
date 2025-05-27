@@ -6,11 +6,7 @@ function getApiUrl() {
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // CRA
-  if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  console.warn("[GiftIdeas] API URL is not set. Set VITE_API_URL or REACT_APP_API_URL in your .env file.");
+  console.warn("[GiftIdeas] API URL is not set. Set VITE_API_URL in your .env file.");
   return "";
 }
 

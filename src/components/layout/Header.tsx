@@ -252,12 +252,12 @@ export const Header = () => {
                 </button>
               </div>
               <div className="relative">
-                <Input
+              <Input
                   type={showNewPassword ? 'text' : 'password'}
-                  placeholder="New Password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                />
+                placeholder="New Password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+              />
                 <button
                   type="button"
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
@@ -279,7 +279,7 @@ export const Header = () => {
               />
               <Button onClick={handleForgotPassword} disabled={resetting || !resetEmail}>
                 {resetting ? 'Sending...' : 'Send Reset Email'}
-              </Button>
+        </Button>
             </div>
           </DialogContent>
         </Dialog>

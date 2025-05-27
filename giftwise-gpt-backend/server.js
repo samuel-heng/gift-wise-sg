@@ -137,6 +137,8 @@ async function sendRemindersAndNudges() {
               </a>
             </p>`
         });
+        // Log before update
+        console.log('About to update reminder_sent_date', { occasionId: occasion.id, update: { reminder_sent_date: todayStr }, fullOccasion: occasion });
         // Update reminder_sent_date
         const updateResult = await occasionSvc.update(occasion.id, { reminder_sent_date: todayStr });
         if (!updateResult) {
@@ -162,6 +164,8 @@ async function sendRemindersAndNudges() {
               </a>
             </p>`
         });
+        // Log before update
+        console.log('About to update nudge_sent_date', { occasionId: occasion.id, update: { nudge_sent_date: todayStr }, fullOccasion: occasion });
         // Update nudge_sent_date
         const updateResult = await occasionSvc.update(occasion.id, { nudge_sent_date: todayStr });
         if (!updateResult) {

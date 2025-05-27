@@ -40,3 +40,8 @@
 .read-the-docs {
   color: #888;
 }
+
+.calendar-popover {
+  pointer-events: auto !important;
+  z-index: 9999 !important;
+}

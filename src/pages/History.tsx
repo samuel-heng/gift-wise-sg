@@ -51,6 +51,12 @@ function isValidDate(d: any): d is Date {
   return d instanceof Date && !isNaN(d.getTime());
 }
 
+function coerceToDate(val: any): Date | undefined {
+  if (!val) return undefined;
+  const d = val instanceof Date ? val : new Date(val);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 export function History() {
   const [purchases, setPurchases] = useState<any[]>([]); // Use any for now due to deep join
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -539,8 +545,9 @@ export function History() {
                     control={form.control}
                     name="purchaseDate"
                     render={({ field }) => {
-                      // Log value for debugging
-                      console.log('PurchaseDate field value:', field.value);
+                      // Robustly coerce value to Date or undefined
+                      const coercedValue = coerceToDate(field.value);
+                      console.log('PurchaseDate field coerced value:', coercedValue, 'typeof:', typeof coercedValue);
                       return (
                         <FormItem>
                           <FormLabel>Purchase Date</FormLabel>
@@ -551,32 +558,28 @@ export function History() {
                                   variant="outline"
                                   className={cn(
                                     'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
+                                    !coercedValue && 'text-muted-foreground'
                                   )}
                                 >
-                                  {(() => {
-                                    const dateObj: Date = new Date(field.value as string | number | Date);
-                                    return field.value && isValidDate(dateObj)
-                                      ? format(dateObj as any, 'dd/MM/yyyy')
-                                      : <span>Pick a date</span>;
-                                  })()}
+                                  {coercedValue ? format(coercedValue as any, 'dd/MM/yyyy') : <span>Pick a date</span>}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="calendar-popover w-auto p-0 z-[9999] pointer-events-auto" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
+                                selected={coercedValue}
                                 onSelect={date => {
-                                  field.onChange(date instanceof Date && !isNaN(date) ? date : undefined);
+                                  console.log('Calendar onSelect date:', date, 'typeof:', typeof date);
+                                  field.onChange(date instanceof Date && !isNaN(date.getTime()) ? date : undefined);
                                   setDatePopoverOpen(false);
                                 }}
                                 initialFocus
                                 captionLayout="dropdown"
                                 fromYear={1920}
                                 toYear={new Date().getFullYear()}
-                                defaultMonth={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
+                                defaultMonth={coercedValue}
                               />
                             </PopoverContent>
                           </Popover>

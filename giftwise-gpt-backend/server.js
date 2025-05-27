@@ -121,37 +121,47 @@ async function sendRemindersAndNudges() {
 
     // --- Send Reminder Emails ---
     for (const occasion of reminders) {
-      await sendEmail({
-        to: user.email,
-        subject: `Upcoming Occasion: ${occasion.contacts.name}'s ${occasion.occasion_type}`,
-        html: `<h2>Don't forget!</h2>
-          <p>${occasion.contacts.name}'s ${occasion.occasion_type} is coming up on <b>${occasion.date}</b>.</p>
-          <p>Notes: ${occasion.notes || 'None'}</p>
-          <p>
-            <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
-              Log in to GiftWise for gift ideas!
-            </a>
-          </p>`
-      });
-      // Update reminder_sent_date
-      await occasionSvc.update(occasion.id, { reminder_sent_date: todayStr });
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `Upcoming Occasion: ${occasion.contacts.name}'s ${occasion.occasion_type}`,
+          html: `<h2>Don't forget!</h2>
+            <p>${occasion.contacts.name}'s ${occasion.occasion_type} is coming up on <b>${occasion.date}</b>.</p>
+            <p>Notes: ${occasion.notes || 'None'}</p>
+            <p>
+              <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
+                Log in to GiftWise for gift ideas!
+              </a>
+            </p>`
+        });
+        // Update reminder_sent_date
+        const updateResult = await occasionSvc.update(occasion.id, { reminder_sent_date: todayStr });
+        console.log('Updated reminder_sent_date', { occasionId: occasion.id, userId: user.id, updateResult });
+      } catch (err) {
+        console.error('Reminder email/send error:', err, { user, occasion });
+      }
     }
 
     // --- Send Nudge Emails ---
     for (const occasion of nudges) {
-      await sendEmail({
-        to: user.email,
-        subject: `Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type}?`,
-        html: `<h2>How did it go?</h2>
-          <p>Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type} on ${occasion.date}?</p>
-          <p>
-            <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
-              Please update your purchase history in GiftWise!
-            </a>
-          </p>`
-      });
-      // Update nudge_sent_date
-      await occasionSvc.update(occasion.id, { nudge_sent_date: todayStr });
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type}?`,
+          html: `<h2>How did it go?</h2>
+            <p>Did you buy a gift for ${occasion.contacts.name}'s ${occasion.occasion_type} on ${occasion.date}?</p>
+            <p>
+              <a href="https://giftwisesg.com/" style="color:#2563eb;text-decoration:underline;" target="_blank">
+                Please update your purchase history in GiftWise!
+              </a>
+            </p>`
+        });
+        // Update nudge_sent_date
+        const updateResult = await occasionSvc.update(occasion.id, { nudge_sent_date: todayStr });
+        console.log('Updated nudge_sent_date', { occasionId: occasion.id, userId: user.id, updateResult });
+      } catch (err) {
+        console.error('Nudge email/send error:', err, { user, occasion });
+      }
     }
   }
 }

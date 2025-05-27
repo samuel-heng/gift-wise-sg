@@ -1,4 +1,11 @@
 console.log('TOP OF SERVER.JS REACHED');
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+if (process.env.SUPABASE_SERVICE_KEY) {
+  console.log('Using SUPABASE_SERVICE_KEY for backend jobs.');
+} else {
+  console.warn('WARNING: SUPABASE_SERVICE_KEY not set. Falling back to anon key. Backend jobs will NOT be able to bypass RLS.');
+}
+console.log('Supabase key in use (first 8 chars):', supabaseKey ? supabaseKey.slice(0, 8) : 'undefined');
 const express = require('express');
 const cors = require('cors');
 const { OpenAI } = require('openai');
@@ -71,9 +78,17 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
 async function sendRemindersAndNudges() {
   console.log('sendRemindersAndNudges: function called');
   // Instantiate services with supabase client
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (process.env.SUPABASE_SERVICE_KEY) {
+    console.log('Using SUPABASE_SERVICE_KEY for backend jobs.');
+  } else {
+    console.warn('WARNING: SUPABASE_SERVICE_KEY not set. Falling back to anon key. Backend jobs will NOT be able to bypass RLS.');
+  }
+  console.log('Supabase key in use (first 8 chars):', supabaseKey ? supabaseKey.slice(0, 8) : 'undefined');
+
   const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
+    supabaseKey
   );
   const userProfileService = makeUserProfileService(supabase);
   const occasionSvc = makeOccasionService(supabase);

@@ -48,16 +48,15 @@ export default function AuthPage() {
   }, []);
 
   useEffect(() => {
-    // Handle Supabase magic link (email confirmation) hash fragment
+    // Handle Supabase magic link (email confirmation) hash fragment for HashRouter
     if (window.location.hash && window.location.hash.includes('access_token')) {
       setProcessingMagicLink(true);
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash.replace(/&/g, '&'));
+      // For HashRouter, the hash is of the form #/auth#access_token=...&refresh_token=...
+      // Find the part after the last '#'
+      const hash = window.location.hash.split('#').pop();
+      const params = new URLSearchParams(hash);
       const access_token = params.get('access_token');
       const refresh_token = params.get('refresh_token');
-      // Get username from query param if present
-      const urlParams = new URLSearchParams(window.location.search);
-      const username = urlParams.get('username');
       if (access_token && refresh_token) {
         supabase.auth.setSession({
           access_token,
@@ -72,7 +71,7 @@ export default function AuthPage() {
             await import('axios').then(({ default: axios }) =>
               axios.post(`${apiUrl}/api/user-profile`, {
                 id: data.user.id,
-                name: username || data.user.user_metadata?.name || data.user.email,
+                name: data.user.user_metadata?.name || data.user.email,
                 email: data.user.email
               })
             ).catch(() => {}); // Ignore error if already exists
@@ -111,11 +110,13 @@ export default function AuthPage() {
           setLoading(false);
           return;
         }
+        // Set username in user_metadata on sign up
         result = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: "https://giftwisesg.com/#/auth?username=" + encodeURIComponent(username)
+            emailRedirectTo: "https://giftwisesg.com/#/auth",
+            data: { name: username }
           }
         });
         if (result.error) {

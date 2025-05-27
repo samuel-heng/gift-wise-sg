@@ -48,9 +48,15 @@ export const Header = () => {
   useEffect(() => {
     if (session) {
       userProfileService.getDefaultProfile().then(profile => {
-        setUser({ name: profile.name, email: profile.email });
-        setEditForm({ name: profile.name, email: profile.email || '', password: profile.password || '' });
-        setUserId(profile.id);
+        if (profile) {
+          setUser({ name: profile.name || profile.email || 'Guest', email: profile.email });
+          setEditForm({ name: profile.name || '', email: profile.email || '', password: profile.password || '' });
+          setUserId(profile.id);
+        } else {
+          setUser({ name: 'Guest' });
+        }
+      }).catch(() => {
+        setUser({ name: 'Guest' });
       });
     } else {
       setUser(null);
@@ -150,6 +156,8 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           {session && user?.name ? (
             <span className="text-base font-medium text-[#233A6A]">{user.name}</span>
+          ) : session && user?.email ? (
+            <span className="text-base font-medium text-[#233A6A]">{user.email}</span>
           ) : (
             <span className="text-base font-medium text-[#233A6A]">Guest</span>
           )}

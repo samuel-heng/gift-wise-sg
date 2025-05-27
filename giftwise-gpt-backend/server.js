@@ -1,3 +1,4 @@
+console.log('TOP OF SERVER.JS REACHED');
 const express = require('express');
 const cors = require('cors');
 const { OpenAI } = require('openai');
@@ -256,6 +257,12 @@ app.post('/api/user-profile', async (req, res) => {
     console.error('User profile creation error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Add a root endpoint for diagnostics
+app.get('/', (req, res) => {
+  console.log('Root endpoint called');
+  res.send('Backend is running');
 });
 
 const PORT = process.env.PORT || 5000;

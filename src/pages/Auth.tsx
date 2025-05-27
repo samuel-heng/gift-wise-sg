@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { userProfileService } from '@/lib/db';
 import { Eye, EyeOff } from 'lucide-react';
+import { HashRouter } from 'react-router-dom';
 
 export default function AuthPage() {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
@@ -114,7 +115,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: "https://giftwisesg.com?username=" + encodeURIComponent(username)
+            emailRedirectTo: "https://giftwisesg.com/#/auth?username=" + encodeURIComponent(username)
           }
         });
         if (result.error) {

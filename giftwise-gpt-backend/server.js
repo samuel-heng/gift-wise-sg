@@ -12,8 +12,23 @@ app.use(express.json());
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// In-memory cache for gift ideas (keyed by JSON.stringify of input, expires in 1 hour)
+const giftIdeasCache = new Map();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 app.post("/api/gift-ideas", async (req, res) => {
   const { recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases } = req.body;
+  const cacheKey = JSON.stringify({ recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases });
+  const now = Date.now();
+  // Check cache
+  if (giftIdeasCache.has(cacheKey)) {
+    const { data, timestamp } = giftIdeasCache.get(cacheKey);
+    if (now - timestamp < CACHE_TTL_MS) {
+      return res.json(data);
+    } else {
+      giftIdeasCache.delete(cacheKey);
+    }
+  }
 
   // Sharpened system prompt
   const systemPrompt = `
@@ -42,6 +57,8 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
     });
     const text = completion.choices[0].message.content;
     const ideas = JSON.parse(text);
+    // Store in cache
+    giftIdeasCache.set(cacheKey, { data: ideas, timestamp: now });
     res.json(ideas);
   } catch (err) {
     console.error("Gift ideas error:", err);

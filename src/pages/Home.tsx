@@ -473,6 +473,13 @@ export function Home() {
             </div>
           </div>
 
+          {aiLoading && (
+            <div className="flex flex-col items-center justify-center my-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+              <div className="text-sm text-muted-foreground">Generating ideas, this may take a few seconds...</div>
+            </div>
+          )}
+
           <Dialog open={modalOpen} onOpenChange={setModalOpen}>
             <DialogContent>
               <DialogHeader>
@@ -534,16 +541,16 @@ export function Home() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={form.date}
+                      selected={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : undefined)}
                       onSelect={date => {
-                        setForm(f => ({ ...f, date: date ?? undefined }));
+                        setForm(f => ({ ...f, date: date instanceof Date && !isNaN(date) ? date : undefined }));
                         if (date) setCalendarOpen(false);
                       }}
                       initialFocus
                       captionLayout="dropdown"
                       fromYear={1920}
                       toYear={new Date().getFullYear()}
-                      defaultMonth={form.date ? form.date : undefined}
+                      defaultMonth={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : undefined)}
                     />
                   </PopoverContent>
                 </Popover>

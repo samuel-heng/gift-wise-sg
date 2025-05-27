@@ -533,9 +533,9 @@ export function History() {
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
                               onSelect={date => {
-                                field.onChange(date);
+                                field.onChange(date instanceof Date && !isNaN(date) ? date : undefined);
                                 setDatePopoverOpen(false);
                               }}
                               initialFocus

@@ -168,17 +168,17 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value}
+                    selected={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
                     onSelect={date => {
-                      field.onChange(date);
+                      field.onChange(date instanceof Date && !isNaN(date) ? date : undefined);
                       if (date) setCalendarOpen(false);
                     }}
-                    disabled={(date) => date > new Date()}
+                    disabled={date => date > new Date()}
                     initialFocus
                     captionLayout="dropdown"
                     fromYear={1920}
                     toYear={new Date().getFullYear()}
-                    defaultMonth={field.value ? field.value : undefined}
+                    defaultMonth={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
                   />
                 </PopoverContent>
               </Popover>

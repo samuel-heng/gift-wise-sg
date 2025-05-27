@@ -195,7 +195,7 @@ export function History() {
             : (editPurchase.gifts?.occasions?.contact_id || ''),
           occasionId: isNoneOccasion ? 'none' : (editPurchase.gifts?.occasions?.id || ''),
           price: editPurchase.price,
-          purchaseDate: new Date(editPurchase.purchase_date),
+          purchaseDate: editPurchase.purchase_date ? new Date(editPurchase.purchase_date) : undefined,
           notes: editPurchase.notes || '',
           category: editPurchase.category || CATEGORY_OPTIONS[0],
           giftName: editPurchase.gifts?.name || '',
@@ -203,7 +203,7 @@ export function History() {
       } else {
         form.reset({
           contactId: contacts[0]?.id || '',
-          occasionId: '',
+          occasionId: 'none',
           price: 0,
           purchaseDate: undefined,
           notes: '',
@@ -525,7 +525,7 @@ export function History() {
                                   !field.value && 'text-muted-foreground'
                                 )}
                               >
-                                {field.value ? format(field.value, 'dd/MM/yyyy') : <span>Pick a date</span>}
+                                {field.value ? format(field.value instanceof Date ? field.value : new Date(field.value), 'dd/MM/yyyy') : <span>Pick a date</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -542,6 +542,7 @@ export function History() {
                               captionLayout="dropdown"
                               fromYear={1920}
                               toYear={new Date().getFullYear()}
+                              defaultMonth={field.value instanceof Date ? field.value : (field.value ? new Date(field.value) : undefined)}
                             />
                           </PopoverContent>
                         </Popover>

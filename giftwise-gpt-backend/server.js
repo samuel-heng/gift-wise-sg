@@ -68,6 +68,7 @@ Return as JSON: [{ "name": "...", "reason": "..." }]
 
 // --- Reminder/Nudge Logic ---
 async function sendRemindersAndNudges() {
+  console.log('sendRemindersAndNudges: function called');
   // Instantiate services with supabase client
   const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -189,11 +190,13 @@ async function sendRemindersAndNudges() {
 
 // --- Cron Job: runs every 5 minutes for demo (change to '0 8 * * *' for daily at 8am) ---
 cron.schedule('*/5 * * * *', async () => {
+  console.log('CRON: About to call sendRemindersAndNudges');
   await sendRemindersAndNudges();
 });
 
 // --- Manual Trigger Endpoint for Demo ---
 app.post('/api/trigger-reminders', async (req, res) => {
+  console.log('API: /api/trigger-reminders called');
   try {
     await sendRemindersAndNudges();
     res.json({ success: true, message: "Reminders/nudges triggered." });
@@ -256,4 +259,7 @@ app.post('/api/user-profile', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('Backend started and listening');
+});

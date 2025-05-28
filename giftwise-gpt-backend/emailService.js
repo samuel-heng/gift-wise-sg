@@ -6,7 +6,7 @@ export async function sendEmail({ to, subject, html }) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'GiftWise SG <noreply@giftwisesg.com>',
       to,
       subject,
       html,

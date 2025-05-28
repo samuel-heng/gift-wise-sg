@@ -160,6 +160,15 @@ export function History() {
     setEditPurchase(null);
     setOccasionOptions([]);
     setGiftOptions([]);
+    form.reset({
+      contactId: '',
+      occasionId: 'none',
+      price: 0,
+      purchaseDate: undefined,
+      notes: '',
+      category: CATEGORY_OPTIONS[0],
+      giftName: '',
+    });
     setEditModalOpen(true);
   };
 
@@ -247,6 +256,10 @@ export function History() {
       updateOccasionOptions(contactId);
       form.setValue('occasionId', '');
       setGiftOptions([]);
+    } else {
+      setOccasionOptions([]);
+      setGiftOptions([]);
+      form.setValue('occasionId', '');
     }
   }, [contactId]);
   useEffect(() => {

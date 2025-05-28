@@ -262,6 +262,7 @@ export function Home() {
         occasionNotes: selectedOccasion ? selectedOccasion.notes || "" : "",
         preferences: selectedContact.preferences || "",
         pastPurchases,
+        forceRefresh,
       });
       setAiRecommendations(aiResults);
       setRecommendationCache(prev => ({ ...prev, [cacheKey]: aiResults }));

@@ -183,20 +183,32 @@ export function History() {
   };
 
   // Edit button handler
-  const handleEdit = (purchase: any) => {
+  const handleEdit = async (purchase: any) => {
     setCategoryManuallySet(false);
     setEditPurchase(purchase);
-    // Defensive: Only update options if data exists
     const isNoneOccasion = !purchase.gifts?.occasion_id;
     const contactId = isNoneOccasion
       ? (purchase.gifts?.contact_id || purchase.contact_id || '')
       : (purchase.gifts?.occasions?.contact_id || '');
     const occasionId = isNoneOccasion ? 'none' : (purchase.gifts?.occasions?.id || '');
-    if (contactId) updateOccasionOptions(contactId);
-    else setOccasionOptions([]);
-    if (!isNoneOccasion && occasionId) updateGiftOptions(occasionId);
-    else setGiftOptions([]);
-    setEditModalOpen(true);
+    // Update occasion options for the contact, then reset form
+    updateOccasionOptions(contactId);
+    setTimeout(() => {
+      let purchaseDate = purchase.purchase_date ? parseLocalDate(purchase.purchase_date) : undefined;
+      if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
+        purchaseDate = undefined;
+      }
+      form.reset({
+        contactId,
+        occasionId,
+        price: purchase.price,
+        purchaseDate,
+        notes: purchase.notes || '',
+        category: purchase.category || CATEGORY_OPTIONS[0],
+        giftName: purchase.gifts?.name || '',
+      });
+      setEditModalOpen(true);
+    }, 0);
   };
 
   // Form logic
@@ -340,9 +352,9 @@ export function History() {
         }, userProfile.id);
         giftId = newGift.id;
       }
-      // In onSubmit, set purchase_date as YYYY-MM-DD string if values.purchaseDate is a Date
+      // In onSubmit, use local time for purchaseDate string
       const purchaseDateStr = values.purchaseDate instanceof Date && !isNaN(values.purchaseDate.getTime())
-        ? values.purchaseDate.toISOString().slice(0, 10)
+        ? `${values.purchaseDate.getFullYear()}-${String(values.purchaseDate.getMonth() + 1).padStart(2, '0')}-${String(values.purchaseDate.getDate()).padStart(2, '0')}`
         : '';
       const payload = {
         gift_id: giftId,

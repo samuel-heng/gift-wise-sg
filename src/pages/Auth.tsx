@@ -140,7 +140,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#f4f6fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#f4f6fb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
       <Card className="w-full max-w-md p-8 shadow-lg">
         <div className="flex flex-col items-center mb-6">
           <span className="text-2xl font-bold text-[#233A6A] mt-2">Welcome to GiftWise!</span>
@@ -276,6 +276,10 @@ export default function AuthPage() {
           </TabsContent>
         </Tabs>
       </Card>
+      <footer className="mt-4 text-xs text-muted-foreground text-center max-w-md mx-auto">
+        <strong>Disclaimer:</strong><br />
+        This website is created for learning purposes only. The information provided here should not be considered professional advice. Please note that we make no guarantees regarding the accuracy, completeness, or reliability of the contents of this website. Any actions you take based on the contents of this website are at your own risk. We are not liable for any losses or damages incurred from the use of this website.
+      </footer>
     </div>
   );
 } 

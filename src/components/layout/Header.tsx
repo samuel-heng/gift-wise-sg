@@ -221,17 +221,17 @@ export const Header = () => {
             </div>
             <DialogFooter>
               {editing ? (
-                <>
-                  <Button onClick={handleSave}>Save</Button>
-                  <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
-                </>
+                <div className="flex gap-2 w-full">
+                  <Button className="w-full md:w-auto" onClick={handleSave}>Save</Button>
+                  <Button className="w-full md:w-auto" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                </div>
               ) : (
-                <>
-                  <Button onClick={handleEditClick}>Edit Details</Button>
-                  <Button variant="secondary" onClick={() => setChangePasswordModalOpen(true)}>
+                <div className="flex gap-2 w-full">
+                  <Button className="w-full md:w-auto" onClick={handleEditClick}>Edit Details</Button>
+                  <Button className="w-full md:w-auto" variant="secondary" onClick={() => setChangePasswordModalOpen(true)}>
                     Change Password
                   </Button>
-                </>
+                </div>
               )}
             </DialogFooter>
           </DialogContent>

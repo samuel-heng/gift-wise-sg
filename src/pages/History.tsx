@@ -57,6 +57,12 @@ function coerceToDate(val: any): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
+function parseLocalDate(dateStr: string | undefined): Date | undefined {
+  if (!dateStr) return undefined;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function History() {
   const [purchases, setPurchases] = useState<any[]>([]); // Use any for now due to deep join
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -216,7 +222,7 @@ export function History() {
           console.warn('OccasionId not found in options, defaulting to none:', occasionId);
           occasionId = 'none';
         }
-        let purchaseDate = editPurchase.purchase_date ? new Date(editPurchase.purchase_date) : undefined;
+        let purchaseDate = editPurchase.purchase_date ? parseLocalDate(editPurchase.purchase_date) : undefined;
         if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
           console.warn('Invalid purchaseDate, defaulting to undefined:', purchaseDate);
           purchaseDate = undefined;
@@ -235,7 +241,7 @@ export function History() {
         console.log('Form reset values:', { occasionId, purchaseDate });
       } else {
         form.reset({
-          contactId: contacts[0]?.id || '',
+          contactId: '',
           occasionId: 'none',
           price: 0,
           purchaseDate: undefined,
@@ -333,7 +339,7 @@ export function History() {
       const payload = {
         gift_id: giftId,
         price: values.price,
-        purchase_date: values.purchaseDate.toISOString().slice(0, 10),
+        purchase_date: values.purchaseDate?.toISOString().slice(0, 10) || '',
         notes: values.notes,
         user_id: userProfile.id,
         category: values.category,
@@ -428,7 +434,7 @@ export function History() {
                         : (purchase.gifts?.occasions?.occasion_type || 'Unknown');
                       const category = purchase.category || 'Other';
                       const Icon = CATEGORY_ICONS[category] || Gift;
-                      const dateObj: Date = coerceToDate(purchase.purchase_date);
+                      const dateObj: Date = parseLocalDate(purchase.purchase_date);
                       const formattedDate = dateObj
                         ? format(dateObj, 'MMM d, yyyy')
                         : 'Unknown';
@@ -583,7 +589,7 @@ export function History() {
                     name="purchaseDate"
                     render={({ field }) => {
                       // Robustly coerce value to Date or undefined
-                      const coercedValue = coerceToDate(field.value);
+                      const coercedValue = parseLocalDate(field.value);
                       console.log('PurchaseDate field coerced value:', coercedValue, 'typeof:', typeof coercedValue);
                       return (
                       <FormItem>

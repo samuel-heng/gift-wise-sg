@@ -26,24 +26,26 @@ export const contactService = {
   },
 
   async create(contact: Omit<Contact, 'id' | 'created_at'>) {
+    // Remove email and phone if present
+    const { email, phone, ...cleanContact } = contact as any;
     const { data, error } = await supabase
       .from('contacts')
-      .insert(contact)
+      .insert(cleanContact)
       .select()
       .single();
-    
     if (error) throw error;
     return data as Contact;
   },
 
   async update(id: string, contact: Partial<Contact>) {
+    // Remove email and phone if present
+    const { email, phone, ...cleanContact } = contact as any;
     const { data, error } = await supabase
       .from('contacts')
-      .update(contact)
+      .update(cleanContact)
       .eq('id', id)
       .select()
       .single();
-    
     if (error) throw error;
     return data as Contact;
   },
@@ -152,7 +154,18 @@ export const giftService = {
       .single();
     if (error) throw error;
     return data as Gift;
-  }
+  },
+
+  async getByContactId(contactId: string, userId: string) {
+    const { data, error } = await supabase
+      .from('gifts')
+      .select('*')
+      .eq('contact_id', contactId)
+      .eq('user_id', userId)
+      .order('created_at');
+    if (error) throw error;
+    return data as Gift[];
+  },
 };
 
 // Purchase operations

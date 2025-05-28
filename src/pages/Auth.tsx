@@ -89,7 +89,17 @@ export default function AuthPage() {
       let result;
       if (type === 'login') {
         result = await supabase.auth.signInWithPassword({ email, password });
-        if (result.data?.user) {
+        if (result.error) {
+          // Show a user-friendly error for wrong password or invalid login
+          if (
+            result.error.message.toLowerCase().includes('invalid login credentials') ||
+            result.error.message.toLowerCase().includes('invalid email or password')
+          ) {
+            setError('Incorrect email or password. Please try again.');
+          } else {
+            setError(result.error.message);
+          }
+        } else if (result.data?.user) {
           // After login, ensure user profile exists
           await createUserProfile({
             id: result.data.user.id,
@@ -113,8 +123,8 @@ export default function AuthPage() {
             data: { name: username }
           }
         });
-      if (result.error) {
-        setError(result.error.message);
+        if (result.error) {
+          setError(result.error.message);
         } else {
           setSignupSuccess(true);
         }
@@ -276,10 +286,6 @@ export default function AuthPage() {
           </TabsContent>
         </Tabs>
       </Card>
-      <footer className="mt-4 text-xs text-muted-foreground text-center max-w-md mx-auto">
-        <strong>Disclaimer:</strong><br />
-        This website is created for learning purposes only. The information provided here should not be considered professional advice. Please note that we make no guarantees regarding the accuracy, completeness, or reliability of the contents of this website. Any actions you take based on the contents of this website are at your own risk. We are not liable for any losses or damages incurred from the use of this website.
-      </footer>
     </div>
   );
 } 

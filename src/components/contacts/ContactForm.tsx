@@ -17,8 +17,6 @@ import { toast } from 'sonner';
 // Zod schema for validating contact form fields
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
-  email: z.string().email({ message: "Invalid email address" }).optional().or(z.literal('')),
-  phone: z.string().regex(/^(8|9)\d{7}$/, { message: "Enter a valid SG phone (8 digits, starts with 8 or 9)" }).optional().or(z.literal('')),
   relationship: z.string().min(1, { message: "Relationship is required" }),
   birthday: z.date().optional(),
   preferences: z.string().optional(),
@@ -44,8 +42,6 @@ export const ContactForm: React.FC<ContactFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialValues?.name || '',
-      email: initialValues?.email || '',
-      phone: initialValues?.phone || '',
       relationship: initialValues?.relationship || '',
       birthday: initialValues?.birthday,
       preferences: initialValues?.preferences || '',
@@ -83,36 +79,6 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
-        {/* Email field */}
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter email address" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Phone field */}
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone</FormLabel>
-              <FormControl>
-                <Input placeholder="8-digit SG phone (8xxxxxxx or 9xxxxxxx)" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         {/* Relationship field (dropdown) */}
         <FormField
           control={form.control}
@@ -139,13 +105,13 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           )}
         />
 
-        {/* Birthday field (calendar popover) */}
+        {/* Date of Birth field (calendar popover) */}
         <FormField
           control={form.control}
           name="birthday"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Birthday</FormLabel>
+              <FormLabel>Date of Birth</FormLabel>
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>

@@ -173,8 +173,26 @@ export function Home() {
       setReminderUnit(unit);
     } else {
       setEditOccasion(null);
+      // Default to next birthday if occasion_type is 'Birthday' and contact has a birthday
+      let defaultDate: Date | undefined = undefined;
+      let defaultContactId = contacts.length > 0 ? contacts[0].id : '';
+      if (defaultContactId) {
+        const contact = contacts.find(c => c.id === defaultContactId);
+        if (contact && contact.birthday) {
+          const dob = new Date(contact.birthday);
+          const today = new Date();
+          let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+          if (
+            nextBirthday < today ||
+            (nextBirthday.getDate() === today.getDate() && nextBirthday.getMonth() === today.getMonth() && nextBirthday.getFullYear() === today.getFullYear())
+          ) {
+            nextBirthday.setFullYear(today.getFullYear() + 1);
+          }
+          defaultDate = nextBirthday;
+        }
+      }
       setForm({
-        contactId: contacts.length > 0 ? contacts[0].id : '',
+        contactId: defaultContactId,
         occasion_type: '',
         date: undefined,
         notes: '',
@@ -347,6 +365,25 @@ export function Home() {
 
   const navigate = useNavigate();
 
+  // When the user selects 'Birthday' as the occasion type, auto-fill the date with the next birthday if available
+  const handleOccasionTypeChange = (type: string) => {
+    setForm(f => {
+      if (type === 'Birthday') {
+        const contact = contacts.find(c => c.id === f.contactId);
+        if (contact && contact.birthday) {
+          const dob = new Date(contact.birthday);
+          const today = new Date();
+          let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+          if (nextBirthday < today) {
+            nextBirthday.setFullYear(today.getFullYear() + 1);
+          }
+          return { ...f, occasion_type: type, date: nextBirthday };
+        }
+      }
+      return { ...f, occasion_type: type };
+    });
+  };
+
   return (
     <PageLayout>
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 mt-0 gap-2 md:gap-0">
@@ -373,13 +410,14 @@ export function Home() {
               <p className="text-center text-base text-muted-foreground mb-4">You have no contacts yet. Go to the Contacts page to add your first contact and get started!</p>
               <Button onClick={() => navigate('/contacts')} className="w-fit">Go to Contacts</Button>
             </div>
-          ) : filteredOccasions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <p className="text-center text-base text-muted-foreground mb-4">You have contacts but no occasions. Add an occasion to start tracking important dates!</p>
-              <Button onClick={() => openModal()} className="w-fit">Add Occasion</Button>
-            </div>
           ) : (
             <>
+              {filteredOccasions.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <p className="text-center text-base text-muted-foreground mb-4">You have contacts but no occasions. Add an occasion to start tracking important dates!</p>
+                  <Button onClick={() => openModal()} className="w-fit">Add Occasion</Button>
+                </div>
+              )}
               <div className="mb-10">
                 <div className="space-y-4">
                   {filteredOccasions.map((occasion) => {
@@ -577,7 +615,7 @@ export function Home() {
                       <label className="block text-sm font-medium mb-1">Occasion Type</label>
                       <Select
                         value={form.occasion_type}
-                        onValueChange={val => setForm(f => ({ ...f, occasion_type: val }))}
+                        onValueChange={handleOccasionTypeChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select occasion type" />
@@ -661,10 +699,6 @@ export function Home() {
           )}
         </>
       )}
-      <footer className="mt-8 text-xs text-muted-foreground text-center max-w-2xl mx-auto">
-        <strong>Disclaimer:</strong><br />
-        This website is created for learning purposes only. The information provided here should not be considered professional advice. Please note that we make no guarantees regarding the accuracy, completeness, or reliability of the contents of this website. Any actions you take based on the contents of this website are at your own risk. We are not liable for any losses or damages incurred from the use of this website.
-      </footer>
     </PageLayout>
   );
 } 

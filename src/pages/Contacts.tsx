@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { contactService, userProfileService, purchaseService } from '../lib/db';
+import { contactService, userProfileService, purchaseService, occasionService, giftService } from '../lib/db';
 import type { Contact, UserProfile } from '../lib/supabase';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -73,7 +73,37 @@ export function Contacts() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) return;
+    if (!userProfile) return;
     try {
+      // 1. Delete all purchases for this contact
+      const allPurchases = await purchaseService.getAll(userProfile.id);
+      const contactPurchases = allPurchases.filter(p => (p.gifts?.contact_id || p.contact_id) === id);
+      for (const purchase of contactPurchases) {
+        await purchaseService.delete(purchase.id);
+      }
+
+      // 2. Delete all occasions for this contact (and their gifts)
+      const occasions = await occasionService.getByContactId(id);
+      for (const occasion of occasions) {
+        // Delete all gifts for this occasion
+        const gifts = await giftService.getByOccasionId(occasion.id, userProfile.id);
+        for (const gift of gifts) {
+          await giftService.update(gift.id, { occasion_id: null }); // Unlink from occasion
+          await giftService.update(gift.id, { contact_id: null }); // Unlink from contact
+        }
+        await occasionService.delete(occasion.id);
+      }
+
+      // 3. Delete or unlink all gifts directly linked to this contact (not via occasion)
+      const giftsForContact = await giftService.getByContactId(id, userProfile.id);
+      for (const gift of giftsForContact) {
+        // Option 1: Delete the gift
+        // await giftService.delete(gift.id);
+        // Option 2: Unlink the contact
+        await giftService.update(gift.id, { contact_id: null });
+      }
+
+      // 4. Finally, delete the contact
       await contactService.delete(id);
       toast.success('Contact deleted');
       refreshContacts();
@@ -258,13 +288,14 @@ export function Contacts() {
                             initialValues={
                               editContact
                                 ? {
-                                    ...editContact,
+                                    name: editContact.name,
+                                    relationship: editContact.relationship || '',
                                     birthday: editContact.birthday ? new Date(editContact.birthday) : undefined,
+                                    preferences: editContact.preferences || '',
+                                    notes: editContact.notes || '',
                                   }
                                 : {
                                     name: '',
-                                    email: '',
-                                    phone: '',
                                     relationship: '',
                                     birthday: undefined,
                                     preferences: '',

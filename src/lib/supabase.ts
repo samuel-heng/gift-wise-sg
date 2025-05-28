@@ -15,8 +15,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type Contact = {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
   birthday?: string;
   relationship?: string;
   preferences?: string;

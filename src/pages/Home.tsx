@@ -18,6 +18,7 @@ import { toast } from '@/components/ui/use-toast';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { fetchGiftIdeas } from "../services/giftIdeasService";
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/context/UserContext';
 
 // Returns the number of days left until a given date string (YYYY-MM-DD)
 function getDaysLeft(dateStr: string) {
@@ -93,8 +94,9 @@ function parseLocalDate(date: string | Date | undefined): Date | undefined {
 }
 
 export function Home() {
-  // State for user profile, contacts, occasions, gifts, purchases, loading, error, modal, and form
+  const { user, userLoading } = useUser();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  // State for user profile, contacts, occasions, gifts, purchases, loading, error, modal, and form
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [occasions, setOccasions] = useState<(Occasion & { contacts: { name: string; id?: string } })[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
@@ -118,13 +120,16 @@ export function Home() {
   // Loads all data for the Home page (profile, contacts, occasions, gifts, purchases)
   useEffect(() => {
     async function loadData() {
+      if (!user || !user.email) {
+        setError('You must be logged in to view this page.');
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
+        // Fetch user profile to get the id
         const profile = await userProfileService.getDefaultProfile();
-        if (!profile) {
-          setError('You must be logged in to view this page.');
-          setLoading(false);
-          return;
-        }
+        if (!profile) throw new Error('User profile not found');
         setUserProfile(profile);
         const contactsData = await contactService.getAll(profile.id);
         setContacts(contactsData);
@@ -145,8 +150,8 @@ export function Home() {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    if (!userLoading) loadData();
+  }, [user, userLoading]);
 
   // Add state for reminder timing
   const [reminderValue, setReminderValue] = useState(2);
@@ -611,9 +616,9 @@ export function Home() {
                           }}
                           initialFocus
                           captionLayout="dropdown"
-                          fromYear={1920}
-                          toYear={new Date().getFullYear()}
-                          defaultMonth={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : undefined)}
+                          fromYear={2020}
+                          toYear={new Date().getFullYear() + 10}
+                          defaultMonth={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : new Date())}
                         />
                       </PopoverContent>
                     </Popover>

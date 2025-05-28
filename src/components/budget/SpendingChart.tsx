@@ -17,13 +17,22 @@ const COLORS = ['#2563EB', '#10B981', '#F59E42', '#F43F5E', '#A21CAF', '#FACC15'
 export function SpendingChart({ data }: SpendingChartProps) {
   const total = data.reduce((sum, item) => sum + item.amount, 0);
 
-  // Custom label to show category and percent, with truncation and tooltip
+  // Responsive outerRadius for pie chart
+  const [windowWidth, setWindowWidth] = React.useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  React.useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const outerRadius = windowWidth < 500 ? 70 : 100;
+
+  // Custom label to show only percent, outside the slice, color-coded
   const renderLabel = (props: PieLabelRenderProps) => {
-    // Only use the minimum needed for label rendering
-    const { category, cx, cy, midAngle, outerRadius, percent, index } = props as any;
-    if (!category) return null;
+    const { cx, cy, midAngle, outerRadius, percent, index } = props as any;
+    if (typeof percent !== 'number' || percent === 0) return null;
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius + 24;
+    // Position label just outside the slice
+    const radius = outerRadius + 18;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
@@ -34,9 +43,10 @@ export function SpendingChart({ data }: SpendingChartProps) {
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         fontSize={13}
+        fontWeight="bold"
         style={{ pointerEvents: 'auto' }}
       >
-        {`${category}: ${Math.round(percent * 100)}%`}
+        {`${Math.round(percent * 100)}%`}
       </text>
     );
   };
@@ -44,25 +54,24 @@ export function SpendingChart({ data }: SpendingChartProps) {
   return (
     <div className="h-[340px] w-full flex flex-col justify-between">
       <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={data}
+        <PieChart>
+          <Pie
+            data={data}
             dataKey="amount"
             nameKey="category"
-                cx="50%"
-                cy="50%"
-            outerRadius={100}
+            cx="50%"
+            cy="50%"
+            outerRadius={outerRadius}
             label={renderLabel}
-                labelLine={false}
-              >
+            labelLine={false}
+          >
             {data.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
+            ))}
+          </Pie>
+          <Tooltip 
             formatter={(value: number, name: string, props: any) => [`$${value.toFixed(2)}`, 'Amount']}
-              />
-          {/* Legend inside chart, always rendered, centered, with wrapping */}
+          />
           <Legend
             verticalAlign="bottom"
             align="center"
@@ -75,8 +84,8 @@ export function SpendingChart({ data }: SpendingChartProps) {
               minHeight: 32,
             }}
           />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

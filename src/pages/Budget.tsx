@@ -13,8 +13,10 @@ import type { Purchase, UserProfile } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useUser } from '@/context/UserContext';
 
 const Budget = () => {
+  const { user, userLoading } = useUser();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [budget, setBudget] = useState<number>(500);
   const [activeTab, setActiveTab] = useState<string>('spending');
@@ -37,13 +39,15 @@ const Budget = () => {
 
   useEffect(() => {
     async function loadData() {
+      if (!user || !user.email) {
+        setError('You must be logged in to view this page.');
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const profile = await userProfileService.getDefaultProfile();
-        if (!profile) {
-          setError('You must be logged in to view this page.');
-          setLoading(false);
-          return;
-        }
+        if (!profile) throw new Error('User profile not found');
         setUserProfile(profile);
         setBudget(profile.yearly_budget);
         const data = await purchaseService.getAll(profile.id);
@@ -54,8 +58,8 @@ const Budget = () => {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    if (!userLoading) loadData();
+  }, [user, userLoading]);
 
   // Calculate total spent
   const totalSpent = purchases.reduce((sum, purchase) => sum + purchase.price, 0);
@@ -104,7 +108,7 @@ const Budget = () => {
 
   return (
     <PageLayout>
-      <h1 className="text-2xl font-bold mt-0 mb-4">Budget & Spending</h1>
+      <h1 className="text-xl md:text-2xl font-bold mt-0 mb-4 text-left">Budget & Spending</h1>
       {/* Tabs for switching between spending and budget */}
       {loading ? (
         <div className="flex justify-center items-center h-64">Loading budget data...</div>
@@ -112,16 +116,16 @@ const Budget = () => {
         <div className="text-red-500 p-4">Error: {error}</div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2">
+          <TabsList className="grid grid-cols-2 w-full overflow-x-auto md:w-auto mb-2 md:mb-0">
             <TabsTrigger value="spending">Spending</TabsTrigger>
             <TabsTrigger value="budget">Budget</TabsTrigger>
           </TabsList>
           {/* Spending tab content - shows spending chart, spending overview, and recent purchases */}
           <TabsContent value="spending" className="space-y-6 mt-4">
-            <Card className="w-full">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl">Spending by:</CardTitle>
-                <div className="flex gap-2 ml-4">
+            <Card className="w-full p-2 md:p-4">
+              <CardHeader className="flex flex-col md:flex-row items-center md:justify-between p-2 md:p-4">
+                <CardTitle className="text-lg md:text-xl">Spending by:</CardTitle>
+                <div className="flex gap-2 ml-0 md:ml-4 mt-2 md:mt-0">
                   <button
                     className={`px-4 py-1 rounded-md border text-base font-medium transition-colors ${groupBy === 'category' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-muted'}`}
                     onClick={() => setGroupBy('category')}
@@ -138,7 +142,7 @@ const Budget = () => {
                   </button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-4">
                 <SpendingChart data={chartData} />
               </CardContent>
             </Card>
@@ -147,11 +151,11 @@ const Budget = () => {
           {/* Budget tab content - shows budget tracker only */}
           <TabsContent value="budget" className="mt-4 space-y-6">
             <BudgetForm currentBudget={budget} onSave={handleSaveBudget} />
-            <Card className="max-w-xl mx-auto">
-              <CardHeader>
-                <CardTitle>Annual Budget</CardTitle>
+            <Card className="max-w-xl mx-auto w-full p-2 md:p-4">
+              <CardHeader className="p-2 md:p-4">
+                <CardTitle className="text-lg md:text-xl">Annual Budget</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-4">
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-semibold text-lg">Yearly Budget</span>

@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { useUser } from '@/context/UserContext';
 
 const CATEGORY_OPTIONS = [
   'Electronics & Gadgets',
@@ -68,8 +69,9 @@ function parseLocalDate(dateInput: string | Date | undefined | null): Date | und
 }
 
 export function History() {
-  const [purchases, setPurchases] = useState<any[]>([]); // Use any for now due to deep join
+  const { user, userLoading } = useUser();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [purchases, setPurchases] = useState<any[]>([]); // Use any for now due to deep join
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -82,6 +84,22 @@ export function History() {
   const [formLoading, setFormLoading] = useState(false);
   const [categoryManuallySet, setCategoryManuallySet] = useState(false);
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [pendingEditPurchase, setPendingEditPurchase] = useState<any | null>(null);
+  const [filterContactId, setFilterContactId] = useState<string>('all');
+
+  // Move form initialization here, before any use of form
+  const form = useForm<PurchaseFormValues>({
+    resolver: zodResolver(purchaseSchema),
+    defaultValues: {
+      contactId: '',
+      occasionId: '',
+      price: 0,
+      purchaseDate: undefined,
+      notes: '',
+      category: CATEGORY_OPTIONS[0],
+      giftName: '',
+    },
+  });
 
   // Map category to Lucide icon
   const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -100,13 +118,15 @@ export function History() {
   // Fetch all data needed for dropdowns
   useEffect(() => {
     async function loadAll() {
+      if (!user || !user.email) {
+        setError('You must be logged in to view this page.');
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const profile = await userProfileService.getDefaultProfile();
-        if (!profile) {
-          setError('You must be logged in to view this page.');
-          setLoading(false);
-          return;
-        }
+        if (!profile) throw new Error('User profile not found');
         setUserProfile(profile);
         const [contactsData, occasionsData] = await Promise.all([
           contactService.getAll(profile.id),
@@ -121,16 +141,32 @@ export function History() {
         setLoading(false);
       }
     }
-    loadAll();
-  }, []);
+    if (!userLoading) loadAll();
+  }, [user, userLoading]);
 
-  // Update occasion options when contact changes
-  const updateOccasionOptions = (contactId: string) => {
-    return new Promise<void>((resolve) => {
-      const filtered = occasions.filter((o) => o.contact_id === contactId);
-      setOccasionOptions(filtered);
-      setTimeout(resolve, 0); // Wait for state update
-    });
+  // Update occasion options when contact changes, always include current occasion if editing
+  const updateOccasionOptions = async (contactId: string, currentOccasionId?: string) => {
+    let filtered = occasions.filter((o) => o.contact_id === contactId);
+    if (
+      currentOccasionId &&
+      currentOccasionId !== 'none' &&
+      !filtered.some((o) => o.id === currentOccasionId)
+    ) {
+      // Try to find the occasion in all occasions
+      let found = occasions.find((o) => o.id === currentOccasionId);
+      if (!found) {
+        // Fetch from backend if not found locally
+        try {
+          found = await occasionService.getById(currentOccasionId);
+        } catch (e) {
+          console.warn('Could not fetch occasion by ID:', currentOccasionId, e);
+        }
+      }
+      if (found) {
+        filtered = [...filtered, found];
+      }
+    }
+    setOccasionOptions(filtered);
   };
 
   // Update gift options when occasion changes
@@ -188,100 +224,59 @@ export function History() {
   // Edit button handler
   const handleEdit = async (purchase: any) => {
     setCategoryManuallySet(false);
-    setEditPurchase(purchase);
+    setPendingEditPurchase(purchase);
     const isNoneOccasion = !purchase.gifts?.occasion_id;
     const contactId = isNoneOccasion
       ? (purchase.gifts?.contact_id || purchase.contact_id || '')
       : (purchase.gifts?.occasions?.contact_id || '');
-    const occasionId = isNoneOccasion ? 'none' : (purchase.gifts?.occasions?.id || '');
-    await updateOccasionOptions(contactId);
-    let purchaseDate = purchase.purchase_date ? parseLocalDate(purchase.purchase_date) : undefined;
-    if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
-      purchaseDate = undefined;
-    }
-    form.reset({
-      contactId,
-      occasionId,
-      price: purchase.price,
-      purchaseDate,
-      notes: purchase.notes || '',
-      category: purchase.category || CATEGORY_OPTIONS[0],
-      giftName: purchase.gifts?.name || '',
-    });
-    setEditModalOpen(true);
+    const occasionId = isNoneOccasion ? 'none' : (purchase.gifts?.occasions?.id || 'none');
+    await updateOccasionOptions(contactId, occasionId !== 'none' ? occasionId : undefined);
   };
 
-  // Form logic
-  const form = useForm<PurchaseFormValues>({
-    resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      contactId: '',
-      occasionId: '',
-      price: 0,
-      purchaseDate: undefined,
-      notes: '',
-      category: CATEGORY_OPTIONS[0],
-      giftName: '',
-    },
-  });
-
-  // When modal opens, set form values for edit
+  // Open modal and reset form only after options are ready and pendingEditPurchase is set
   useEffect(() => {
-    if (editModalOpen) {
-      if (editPurchase) {
-        const isNoneOccasion = !editPurchase.gifts?.occasion_id;
-        // Log values for debugging
-        console.log('Edit modal open: editPurchase', editPurchase);
-        let occasionId = isNoneOccasion ? 'none' : (editPurchase.gifts?.occasions?.id || '');
-        // Fallback: if not in options, set to 'none'
-        if (occasionId !== 'none' && !occasionOptions.some(o => o.id === occasionId)) {
-          console.warn('OccasionId not found in options, defaulting to none:', occasionId);
-          occasionId = 'none';
-        }
-        let purchaseDate = editPurchase.purchase_date ? parseLocalDate(editPurchase.purchase_date) : undefined;
-        if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
-          console.warn('Invalid purchaseDate, defaulting to undefined:', purchaseDate);
-          purchaseDate = undefined;
-        }
-        form.reset({
-          contactId: isNoneOccasion
-            ? (editPurchase.gifts?.contact_id || editPurchase.contact_id || '')
-            : (editPurchase.gifts?.occasions?.contact_id || ''),
-          occasionId,
-          price: editPurchase.price,
-          purchaseDate,
-          notes: editPurchase.notes || '',
-          category: editPurchase.category || CATEGORY_OPTIONS[0],
-          giftName: editPurchase.gifts?.name || '',
-        });
-        console.log('Form reset values:', { occasionId, purchaseDate });
-      } else {
-        form.reset({
-          contactId: '',
-          occasionId: 'none',
-          price: 0,
-          purchaseDate: undefined,
-          notes: '',
-          category: CATEGORY_OPTIONS[0],
-          giftName: '',
-        });
+    if (pendingEditPurchase && occasionOptions.length > 0) {
+      const purchase = pendingEditPurchase;
+      setEditPurchase(purchase);
+      setPendingEditPurchase(null);
+      const isNoneOccasion = !purchase.gifts?.occasion_id;
+      const contactId = isNoneOccasion
+        ? (purchase.gifts?.contact_id || purchase.contact_id || '')
+        : (purchase.gifts?.occasions?.contact_id || '');
+      const occasionId = isNoneOccasion ? 'none' : (purchase.gifts?.occasions?.id || 'none');
+      let purchaseDate = purchase.purchase_date ? parseLocalDate(purchase.purchase_date) : undefined;
+      if (purchaseDate && (!(purchaseDate instanceof Date) || isNaN((purchaseDate as Date).getTime()))) {
+        purchaseDate = undefined;
       }
+      form.reset({
+        contactId: String(contactId),
+        occasionId: String(occasionId),
+        price: purchase.price,
+        purchaseDate,
+        notes: purchase.notes || '',
+        category: purchase.category || CATEGORY_OPTIONS[0],
+        giftName: purchase.gifts?.name || '',
+      });
+      setEditModalOpen(true);
     }
-    // eslint-disable-next-line
-  }, [editModalOpen, editPurchase]);
+  }, [pendingEditPurchase, occasionOptions]);
 
   // Watch for contact/occasion changes to update dropdowns
   const contactId = form.watch('contactId');
   const occasionId = form.watch('occasionId');
   useEffect(() => {
     if (contactId) {
-      updateOccasionOptions(contactId);
-      form.setValue('occasionId', '');
+      updateOccasionOptions(contactId, occasionId !== 'none' ? occasionId : undefined).then(() => {
+        // Only reset occasionId if the current value is not in the new options
+        if (occasionId && occasionId !== 'none' && !occasionOptions.some(o => o.id === occasionId)) {
+          form.setValue('occasionId', 'none');
+        }
+      });
       setGiftOptions([]);
     } else {
       setOccasionOptions([]);
       setGiftOptions([]);
-      form.setValue('occasionId', '');
+      form.setValue('occasionId', 'none');
     }
   }, [contactId]);
   useEffect(() => {
@@ -398,31 +393,59 @@ export function History() {
     }
   };
 
+  // Calculate total spent (filtered or all)
+  const filteredPurchases = filterContactId === 'all'
+    ? purchases
+    : purchases.filter(p => {
+        const contactId = p.gifts?.contact_id || p.contact_id;
+        return contactId === filterContactId;
+      });
+  const totalSpent = filteredPurchases.reduce((sum, p) => sum + (p.price || 0), 0);
+
   return (
     <PageLayout>
-      <div className="flex justify-between items-center mb-4 mt-0">
-        <h1 className="text-2xl font-bold">Purchase History</h1>
-        <Button onClick={handleAdd}>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 mt-0 gap-2 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold w-full sm:w-auto text-left">Purchase History</h1>
+        <Button onClick={handleAdd} className="w-full sm:w-auto flex items-center justify-center">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Purchase
         </Button>
       </div>
+      {/* Total spending and filter */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-4">
+        <div className="w-full sm:w-auto flex items-center gap-2">
+          <span className="font-semibold text-base sm:text-lg text-gray-900">Total Spent:</span>
+          <span className="bg-blue-50 text-blue-900 font-bold rounded-full px-3 py-1 text-base sm:text-lg">${totalSpent.toFixed(2)}</span>
+        </div>
+        <div className="w-full sm:w-auto flex items-center gap-2">
+          <Select value={filterContactId} onValueChange={setFilterContactId}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by contact" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Contacts</SelectItem>
+              {contacts.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       {loading ? (
-        <div className="flex justify-center items-center h-64">Loading purchase history...</div>
+        <div className="flex justify-center items-center h-64 text-base">Loading purchase history...</div>
       ) : error ? (
-        <div className="text-red-500 p-4">Error: {error}</div>
+        <div className="text-red-500 p-4 text-base">Error: {error}</div>
       ) : (
         <>
-          {/* Group purchases by year */}
           {(() => {
-            // Group purchases by year
-            const purchasesByYear = purchases.reduce((acc, purchase) => {
+            // Group filtered purchases by year
+            const purchasesByYear = filteredPurchases.reduce((acc, purchase) => {
               const dateObj = parseLocalDate(purchase.purchase_date);
               const year = dateObj && !isNaN(dateObj.getTime()) ? dateObj.getFullYear() : 'Unknown';
               if (!acc[year]) acc[year] = [];
               acc[year].push(purchase);
               return acc;
-            }, {} as Record<number | string, typeof purchases>);
+            }, {} as Record<number | string, typeof filteredPurchases>);
             const sortedYears = Object.keys(purchasesByYear)
               .sort((a, b) => {
                 const aNum = Number(a);
@@ -435,10 +458,10 @@ export function History() {
                 return String(b).localeCompare(String(a));
               });
             return (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {sortedYears.map(year => (
-                  <div key={year} className="space-y-4">
-                    <h3 className="text-lg font-medium">{year}</h3>
+                  <div key={year} className="space-y-3">
+                    <h3 className="text-base sm:text-lg font-medium pl-1 sm:pl-0">{year}</h3>
                     {purchasesByYear[year].map((purchase) => {
                       const isNoneOccasion = !purchase.gifts?.occasion_id;
                       const contactName = isNoneOccasion
@@ -454,33 +477,42 @@ export function History() {
                         ? format(dateObj, 'MMM d, yyyy')
                         : 'Unknown';
                       return (
-                        <Card key={purchase.id} className="rounded-xl shadow-none border mb-3 w-full">
-                          <div className="flex flex-row items-center justify-between px-6 py-4 w-full">
-                            {/* Category Icon */}
-                            <div className="flex-shrink-0 mr-4">
-                              <div className="rounded-full bg-slate-100 flex items-center justify-center w-12 h-12">
-                                <Icon className="h-7 w-7 text-primary" />
-                              </div>
+                        <Card
+                          key={purchase.id}
+                          className="relative rounded-xl shadow-none border mb-2 w-full cursor-pointer hover:bg-slate-50 transition"
+                          onClick={() => handleEdit(purchase)}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Edit purchase: ${purchase.gifts.name}`}
+                        >
+                          <div className="relative flex flex-row items-center gap-3 px-3 sm:px-6 py-3 sm:py-4">
+                            {/* Icon */}
+                            <div className="rounded-full bg-slate-100 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0" aria-hidden>
+                              <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                             </div>
-                            <div className="flex-1 min-w-0 pr-4">
-                              <div className="font-semibold text-lg text-gray-900 whitespace-nowrap overflow-auto" style={{ maxWidth: '100%' }}>{purchase.gifts.name}</div>
-                              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1 whitespace-nowrap overflow-auto" style={{ maxWidth: '100%' }}>
+                            {/* Main content */}
+                            <div className="flex-1 flex flex-col justify-center min-w-0">
+                              <div className="flex items-start justify-between w-full">
+                                <div className="font-semibold text-base sm:text-lg break-words max-w-[180px] sm:max-w-none" style={{ color: '#233A6A' }}>{purchase.gifts.name}</div>
+                                {/* Delete button */}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="ml-2 mt-[-4px] sm:mt-0 absolute right-0 top-0 z-10 p-1 sm:p-2"
+                                  onClick={e => { e.stopPropagation(); handleDeletePurchase(purchase.id); }}
+                                  aria-label="Delete purchase"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
                                 <span>For: {contactName}</span>
                                 <span className="mx-1">•</span>
                                 <span>{occasionName}</span>
-                                <span className="mx-1">•</span>
-                                <span>{formattedDate}</span>
                               </div>
-                            </div>
-                            <div className="flex flex-col items-end ml-4 flex-shrink-0">
-                              <span className="bg-white border border-gray-300 rounded-full px-4 py-1 font-semibold text-base text-gray-900">${purchase.price.toFixed(2)}</span>
-                              <div className="flex gap-1 mt-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(purchase)}>
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeletePurchase(purchase.id)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
+                              <div className="flex items-center justify-between mt-1 w-full">
+                                <span className="text-xs sm:text-sm text-muted-foreground">{formattedDate}</span>
+                                <span className="bg-white border border-gray-300 rounded-full px-3 sm:px-4 py-1 font-semibold text-base text-gray-900 ml-auto">${purchase.price.toFixed(2)}</span>
                               </div>
                             </div>
                           </div>
@@ -495,7 +527,7 @@ export function History() {
 
           {/* Add/Edit Purchase Modal */}
           <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto p-2 sm:p-6">
               <DialogHeader>
                 <DialogTitle>{editPurchase ? 'Edit Purchase' : 'Add Purchase'}</DialogTitle>
               </DialogHeader>
@@ -538,22 +570,31 @@ export function History() {
                     control={form.control}
                     name="occasionId"
                     render={({ field }) => {
-                      // Log value for debugging
-                      console.log('OccasionId field value:', field.value, 'Options:', occasionOptions.map(o => o.id));
+                      // Improved logging: log value and all option IDs and labels
+                      console.log('[Select render] OccasionId field value:', field.value, 'Options:', occasionOptions.map(o => ({ id: o.id, label: o.occasion_type ? `${o.occasion_type} (${o.date})` : o.id })));
                       return (
                       <FormItem>
                         <FormLabel>Occasion</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!contactId}>
+                        <Select 
+                          key={occasionOptions.map(o => o.id).join(',') + field.value}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!contactId}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select occasion" />
+                              {(() => {
+                                const selectedOption = occasionOptions.find(o => o.id === field.value);
+                                return (
+                                  <SelectValue placeholder={selectedOption ? (selectedOption.occasion_type ? `${selectedOption.occasion_type} (${selectedOption.date})` : selectedOption.id) : "Select occasion"} />
+                                );
+                              })()}
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="none">None</SelectItem>
                             {occasionOptions.map((o) => (
                               <SelectItem key={o.id} value={o.id}>
-                                {o.occasion_type} ({o.date})
+                                {o.occasion_type ? `${o.occasion_type} (${o.date})` : o.id}
                               </SelectItem>
                             ))}
                           </SelectContent>

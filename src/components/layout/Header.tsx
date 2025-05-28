@@ -1,5 +1,5 @@
 // Import React and routing hooks
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // Import icon component
 import { Bell, Menu, Eye, EyeOff, User } from 'lucide-react';
@@ -12,16 +12,14 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { updateUserProfile } from '@/services/userProfileService';
 import { supabase } from '@/lib/supabase';
+import { useUser } from '@/context/UserContext';
 
 export const Header = () => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; email?: string; password?: string } | null>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', password: '' });
   const [editing, setEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
@@ -32,47 +30,22 @@ export const Header = () => {
   const [oldPassword, setOldPassword] = useState('');
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (session) {
-      userProfileService.getDefaultProfile().then(profile => {
-        if (profile) {
-          setUser({ name: profile.name || profile.email || 'Guest', email: profile.email });
-          setEditForm({ name: profile.name || '', email: profile.email || '', password: profile.password || '' });
-        setUserId(profile.id);
-        } else {
-          setUser({ name: 'Guest' });
-        }
-      }).catch(() => {
-        setUser({ name: 'Guest' });
-      });
-    } else {
-      setUser(null);
-    }
-  }, [session]);
+  const { user, setUser, userLoading, fetchUserProfile } = useUser();
 
   const handleAccountClick = () => {
+    setEditForm({ name: user?.name || '', email: user?.email || '', password: '' });
     setAccountModalOpen(true);
     setPopoverOpen(false);
   };
 
   const handleSave = async () => {
-    if (!userId) return;
+    if (!user?.email) return;
     try {
+      await fetchUserProfile();
+      const profile = await userProfileService.getDefaultProfile();
+      if (!profile) throw new Error('User profile not found');
       const updated = await updateUserProfile({
-        id: userId,
+        id: profile.id,
         name: editForm.name,
         email: editForm.email,
         password: editForm.password || undefined,
@@ -154,9 +127,11 @@ export const Header = () => {
         </div>
         {/* Username and user details menu button on the right */}
         <div className="flex items-center gap-2">
-          {session && user?.name ? (
+          {userLoading ? (
+            <span className="text-base font-medium text-[#233A6A]">&nbsp;</span>
+          ) : user?.name ? (
             <span className="text-base font-medium text-[#233A6A]">{user.name}</span>
-          ) : session && user?.email ? (
+          ) : user?.email ? (
             <span className="text-base font-medium text-[#233A6A]">{user.email}</span>
           ) : (
             <span className="text-base font-medium text-[#233A6A]">Guest</span>
@@ -192,7 +167,7 @@ export const Header = () => {
           </Popover>
         </div>
         <Dialog open={accountModalOpen} onOpenChange={setAccountModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Account Details</DialogTitle>
             </DialogHeader>
@@ -238,7 +213,7 @@ export const Header = () => {
         </Dialog>
         {/* Change Password Modal */}
         <Dialog open={changePasswordModalOpen} onOpenChange={setChangePasswordModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Change Password</DialogTitle>
             </DialogHeader>

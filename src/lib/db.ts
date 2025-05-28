@@ -107,7 +107,17 @@ export const occasionService = {
       .delete()
       .eq('id', id);
     if (error) throw error;
-  }
+  },
+
+  async getById(id: string) {
+    const { data, error } = await supabase
+      .from('occasions')
+      .select('*, contacts(name)')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 // Gift operations

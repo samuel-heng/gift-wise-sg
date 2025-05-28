@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import AuthPage from "./pages/Auth";
 import { supabase } from "@/lib/supabase";
 import ResetPasswordPage from "./pages/ResetPassword";
+import { UserProvider } from './context/UserContext';
 
 // Initialize React Query client for data fetching
 const queryClient = new QueryClient();
@@ -60,35 +61,37 @@ const App = () => {
 
   // Provide React Query context to the entire app
   return (
-  <QueryClientProvider client={queryClient}>
-      {/* TooltipProvider enables tooltips throughout the app */}
-    <TooltipProvider>
-        {/* Toaster components for displaying notifications */}
-      <Toaster />
-      <Sonner />
-        <PageLayout>
-      <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route
-              path="*"
-              element={
-                <RequireAuth>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-        <Route path="/budget" element={<Budget />} />
-                    <Route path="/history" element={<History />} />
-                    <Route path="/contacts" element={<Contacts />} />
-        <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </RequireAuth>
-              }
-            />
-      </Routes>
-        </PageLayout>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    <QueryClientProvider client={queryClient}>
+      <UserProvider>
+        {/* TooltipProvider enables tooltips throughout the app */}
+        <TooltipProvider>
+          {/* Toaster components for displaying notifications */}
+          <Toaster />
+          <Sonner />
+          <PageLayout>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route
+                path="*"
+                element={
+                  <RequireAuth>
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/budget" element={<Budget />} />
+                      <Route path="/history" element={<History />} />
+                      <Route path="/contacts" element={<Contacts />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </RequireAuth>
+                }
+              />
+            </Routes>
+          </PageLayout>
+        </TooltipProvider>
+      </UserProvider>
+    </QueryClientProvider>
+  );
 };
 
 export default App;

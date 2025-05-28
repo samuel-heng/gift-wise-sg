@@ -99,8 +99,19 @@ export function Contacts() {
     }
   };
 
-  // Get unique relationship types for filter buttons
-  const relationshipTypes = Array.from(new Set(contacts.map(c => c.relationship).filter(Boolean)));
+  // Get unique relationship types for filter buttons, sorted by count descending then alphabetically
+  const relationshipCounts: Record<string, number> = {};
+  contacts.forEach(c => {
+    if (c.relationship) {
+      relationshipCounts[c.relationship] = (relationshipCounts[c.relationship] || 0) + 1;
+    }
+  });
+  const relationshipTypes = Array.from(new Set(contacts.map(c => c.relationship).filter(Boolean)))
+    .sort((a, b) => {
+      const countDiff = (relationshipCounts[b] || 0) - (relationshipCounts[a] || 0);
+      if (countDiff !== 0) return countDiff;
+      return a.localeCompare(b);
+    });
 
   // Sort contacts alphabetically
   const sortedContacts = [...contacts].sort((a, b) => a.name.localeCompare(b.name));
@@ -146,27 +157,28 @@ export function Contacts() {
 
   return (
     <PageLayout>
-      <div className="flex justify-between items-center mb-6 mt-0 flex-shrink-0">
-        <h1 className="text-2xl font-bold">Contacts</h1>
-        <Button onClick={handleAdd} variant="default">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 mt-0 gap-2 sm:gap-0 flex-shrink-0">
+        <h1 className="text-xl sm:text-2xl font-bold w-full sm:w-auto text-left">Contacts</h1>
+        <Button onClick={handleAdd} variant="default" className="w-full sm:w-auto flex items-center justify-center">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Contact
         </Button>
       </div>
       {/* Search bar and filter buttons */}
-      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4 w-full">
         <Input
           type="text"
           placeholder="Search contacts..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
-        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+        <div className="flex flex-nowrap gap-2 mt-2 sm:mt-0 w-full sm:w-auto overflow-x-auto scrollbar-hide">
           <Button
             variant={relationshipFilter === 'All' ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setRelationshipFilter('All')}
-            className=""
+            className="min-w-[64px] px-2 sm:px-3"
           >
             All
           </Button>
@@ -174,8 +186,9 @@ export function Contacts() {
             <Button
               key={type}
               variant={relationshipFilter === type ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setRelationshipFilter(type)}
-              className=""
+              className="min-w-[64px] px-2 sm:px-3"
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </Button>
@@ -183,31 +196,31 @@ export function Contacts() {
         </div>
       </div>
       {loading ? (
-        <div className="flex justify-center items-center h-64">Loading contacts...</div>
+        <div className="flex justify-center items-center h-64 text-base">Loading contacts...</div>
       ) : error ? (
-        <div className="text-red-500 p-4">Error: {error}</div>
+        <div className="text-red-500 p-4 text-base">Error: {error}</div>
       ) : (
         <>
           {/* Scrollable contacts list */}
           <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
-                  className="flex items-center gap-4 px-4 py-3 bg-white rounded-lg shadow-sm mb-1 cursor-pointer hover:bg-gray-50 transition"
+                  className="flex items-center gap-3 px-3 sm:px-4 py-3 bg-white rounded-lg shadow-sm mb-1 cursor-pointer hover:bg-gray-50 transition"
                   onClick={() => { setEditContact(contact); setSelectedContact(contact); setModalOpen(true); }}
                 >
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#233A6A] flex items-center justify-center text-white font-bold text-lg uppercase">
                     {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-medium text-base truncate">{contact.name}</span>
+                    <span className="font-medium text-base sm:text-lg truncate">{contact.name}</span>
                     {contact.relationship && (
                       <span className="text-sm text-muted-foreground capitalize truncate">{contact.relationship}</span>
                     )}
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDelete(contact.id); }}>
+                    <Button variant="ghost" size="icon" className="p-2" onClick={e => { e.stopPropagation(); handleDelete(contact.id); }}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
@@ -217,7 +230,7 @@ export function Contacts() {
           </div>
 
           <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-            <DialogContent className="max-w-2xl w-full">
+            <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-2 sm:p-6">
               <div className="mb-6 flex items-center">
                 <Button
                   onClick={handleBackToContacts}
@@ -238,7 +251,7 @@ export function Contacts() {
                       <TabsTrigger value="details" className="w-1/2 py-3 text-base rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm text-center">Details</TabsTrigger>
                       <TabsTrigger value="history" className="w-1/2 py-3 text-base rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm text-center" disabled={editContact === null}>Gift History</TabsTrigger>
                     </TabsList>
-                    <div className="relative h-[500px] overflow-y-auto px-1">
+                    <div className="relative h-[400px] sm:h-[500px] overflow-y-auto px-1">
                       <TabsContent value="details" className="h-full">
                         <div className="h-full flex flex-col">
                           <ContactForm

@@ -256,7 +256,7 @@ export function History() {
       }
     }
     // eslint-disable-next-line
-  }, [editModalOpen, editPurchase, contacts, occasionOptions]);
+  }, [editModalOpen, editPurchase]);
 
   // Watch for contact/occasion changes to update dropdowns
   const contactId = form.watch('contactId');

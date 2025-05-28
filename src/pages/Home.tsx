@@ -83,6 +83,14 @@ function valueUnitToDays(value: number, unit: string) {
   return value;
 }
 
+// Helper function for robust date parsing
+function parseLocalDate(date: string | Date | undefined): Date | undefined {
+  if (!date) return undefined;
+  if (date instanceof Date) return date;
+  if (typeof date === 'string') return new Date(date + 'T00:00:00');
+  return undefined;
+}
+
 export function Home() {
   // State for user profile, contacts, occasions, gifts, purchases, loading, error, modal, and form
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -159,7 +167,12 @@ export function Home() {
       setReminderUnit(unit);
     } else {
       setEditOccasion(null);
-      setForm({ contactId: contacts[0]?.id || '', occasion_type: '', date: undefined, notes: '' });
+      setForm({
+        contactId: contacts.length > 0 ? contacts[0].id : '',
+        occasion_type: '',
+        date: undefined,
+        notes: '',
+      });
       setReminderValue(2);
       setReminderUnit('weeks');
     }
@@ -170,6 +183,10 @@ export function Home() {
   // Converts the Date object to a YYYY-MM-DD string for the database
   const handleSave = async () => {
     if (!userProfile) return;
+    if (!form.contactId || !form.occasion_type || !form.date) {
+      setError('Please fill in all required fields.');
+      return;
+    }
     setLoading(true);
     try {
       const dateStr = form.date ? `${form.date.getFullYear()}-${String(form.date.getMonth() + 1).padStart(2, '0')}-${String(form.date.getDate()).padStart(2, '0')}` : '';
@@ -312,7 +329,7 @@ export function Home() {
   return (
     <PageLayout>
       <div className="flex justify-between items-center mb-4 mt-0">
-        <h1 className="text-2xl font-bold">Upcoming Occasions</h1>
+        <h1 className="text-xl md:text-2xl font-bold">Upcoming Occasions</h1>
         <Button onClick={() => openModal()}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Occasion
@@ -330,7 +347,7 @@ export function Home() {
                 const daysLeft = getDaysLeft(occasion.date);
                 const daysLeftColor = getDaysLeftColor(daysLeft);
                 return (
-                  <Card key={occasion.id} className="flex items-center p-4 shadow-md bg-white cursor-pointer" onClick={() => openModal(occasion)}>
+                  <Card key={occasion.id} className="flex flex-col md:flex-row items-center p-2 md:p-4 shadow-md bg-white cursor-pointer" onClick={() => openModal(occasion)}>
                     <div className="flex-shrink-0 mr-4">
                       <div className="bg-primary/10 rounded-full p-3">
                         <CalendarIcon className="text-primary" size={32} />
@@ -350,7 +367,7 @@ export function Home() {
                         </Button>
                       </div>
                       <div className="text-gray-600 mt-1">
-                        <span className="font-semibold">Date:</span> {occasion.date ? format(new Date(occasion.date), 'dd/MM/yyyy') : ''}
+                        <span className="font-semibold">Date:</span> {occasion.date && parseLocalDate(occasion.date) ? format(parseLocalDate(occasion.date) as Date, 'dd/MM/yyyy') : 'Unknown'}
                       </div>
                       {occasion.notes && (
                         <div className="text-sm text-gray-400 mt-1">
@@ -482,7 +499,7 @@ export function Home() {
           )}
 
           <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto p-2 md:p-6">
               <DialogHeader>
                 <DialogTitle>{editOccasion ? 'Edit Occasion' : 'Add Occasion'}</DialogTitle>
                 <DialogDescription>
@@ -544,7 +561,7 @@ export function Home() {
                       mode="single"
                       selected={form.date instanceof Date ? form.date : (form.date ? new Date(form.date) : undefined)}
                       onSelect={date => {
-                        setForm(f => ({ ...f, date: date instanceof Date && !isNaN(date) ? date : undefined }));
+                        setForm(f => ({ ...f, date: date instanceof Date && !Number.isNaN(date?.getTime()) ? date : undefined }));
                         if (date) setCalendarOpen(false);
                       }}
                       initialFocus
@@ -584,8 +601,8 @@ export function Home() {
                 />
               </div>
               <DialogFooter>
-                <Button onClick={handleSave} disabled={loading}>
-                  Save
+                <Button onClick={handleSave} disabled={loading || !form.contactId || !form.occasion_type || !form.date}>
+                  {loading ? 'Saving...' : 'Save'}
                 </Button>
               </DialogFooter>
             </DialogContent>

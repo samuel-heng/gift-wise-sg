@@ -47,15 +47,22 @@ const OCCASION_TYPE_OPTIONS = [
 
 // Helper to get the user's local Amazon domain
 function getAmazonDomain() {
-  const locale = navigator.language || navigator.languages?.[0] || '';
-  if (locale.startsWith('en-GB')) return 'amazon.co.uk';
-  if (locale.startsWith('de')) return 'amazon.de';
-  if (locale.startsWith('fr')) return 'amazon.fr';
-  if (locale.startsWith('ja')) return 'amazon.co.jp';
-  if (locale.startsWith('en-CA')) return 'amazon.ca';
-  if (locale.startsWith('en-IN')) return 'amazon.in';
-  if (locale.startsWith('en-SG') || locale.startsWith('ms-SG') || locale.startsWith('zh-SG')) return 'amazon.sg';
-  // Add more as needed
+  // Check all user languages for a Singapore locale
+  const languages = navigator.languages || [navigator.language];
+  for (const lang of languages) {
+    // Match any language with -SG (e.g., en-SG, ms-SG, zh-SG)
+    if (/[-_]SG$/i.test(lang)) return 'amazon.sg';
+  }
+  // Fallbacks for other major regions
+  for (const lang of languages) {
+    if (lang.startsWith('en-GB')) return 'amazon.co.uk';
+    if (lang.startsWith('de')) return 'amazon.de';
+    if (lang.startsWith('fr')) return 'amazon.fr';
+    if (lang.startsWith('ja')) return 'amazon.co.jp';
+    if (lang.startsWith('en-CA')) return 'amazon.ca';
+    if (lang.startsWith('en-IN')) return 'amazon.in';
+  }
+  // Default fallback
   return 'amazon.com';
 }
 
@@ -415,7 +422,6 @@ export function Home() {
               {filteredOccasions.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-8">
                   <p className="text-center text-base text-muted-foreground mb-4">You have contacts but no occasions. Add an occasion to start tracking important dates!</p>
-                  <Button onClick={() => openModal()} className="w-fit">Add Occasion</Button>
                 </div>
               )}
               <div className="mb-10">

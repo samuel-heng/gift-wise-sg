@@ -57,10 +57,14 @@ function coerceToDate(val: any): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
-function parseLocalDate(dateStr: string | undefined): Date | undefined {
-  if (!dateStr) return undefined;
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
+function parseLocalDate(dateInput: string | Date | undefined | null): Date | undefined {
+  if (!dateInput) return undefined;
+  if (dateInput instanceof Date) return dateInput;
+  if (typeof dateInput === 'string') {
+    const [year, month, day] = dateInput.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  return undefined;
 }
 
 export function History() {
@@ -336,10 +340,14 @@ export function History() {
         }, userProfile.id);
         giftId = newGift.id;
       }
+      // In onSubmit, set purchase_date as YYYY-MM-DD string if values.purchaseDate is a Date
+      const purchaseDateStr = values.purchaseDate instanceof Date && !isNaN(values.purchaseDate.getTime())
+        ? values.purchaseDate.toISOString().slice(0, 10)
+        : '';
       const payload = {
         gift_id: giftId,
         price: values.price,
-        purchase_date: values.purchaseDate?.toISOString().slice(0, 10) || '',
+        purchase_date: purchaseDateStr,
         notes: values.notes,
         user_id: userProfile.id,
         category: values.category,
@@ -397,13 +405,8 @@ export function History() {
           {(() => {
             // Group purchases by year
             const purchasesByYear = purchases.reduce((acc, purchase) => {
-              let dateObj: Date;
-              if (purchase.purchase_date instanceof Date) {
-                dateObj = purchase.purchase_date;
-              } else {
-                dateObj = new Date(purchase.purchase_date);
-              }
-              const year = isNaN(dateObj.getTime()) ? 'Unknown' : dateObj.getFullYear();
+              const dateObj = parseLocalDate(purchase.purchase_date);
+              const year = dateObj && !isNaN(dateObj.getTime()) ? dateObj.getFullYear() : 'Unknown';
               if (!acc[year]) acc[year] = [];
               acc[year].push(purchase);
               return acc;
@@ -588,8 +591,8 @@ export function History() {
                     control={form.control}
                     name="purchaseDate"
                     render={({ field }) => {
-                      // Robustly coerce value to Date or undefined
-                      const coercedValue = parseLocalDate(field.value);
+                      // In the purchase modal, ensure field.value is string or Date before calling parseLocalDate
+                      const coercedValue = field.value instanceof Date || typeof field.value === 'string' ? parseLocalDate(field.value) : undefined;
                       console.log('PurchaseDate field coerced value:', coercedValue, 'typeof:', typeof coercedValue);
                       return (
                       <FormItem>

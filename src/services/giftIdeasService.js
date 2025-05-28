@@ -20,9 +20,10 @@ function getApiUrl() {
  * @param {string} params.occasionNotes - Notes about the occasion.
  * @param {string} params.preferences - Comma-separated preferences/interests.
  * @param {Array<string>} params.pastPurchases - List of past purchases.
+ * @param {boolean} params.forceRefresh - Whether to bypass the cache.
  * @returns {Promise<Array<{name: string, reason: string}>>}
  */
-export async function fetchGiftIdeas({ recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases }) {
+export async function fetchGiftIdeas({ recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases, forceRefresh = false }) {
   const apiUrl = getApiUrl();
   const requestUrl = `${apiUrl}/api/gift-ideas`;
   try {
@@ -34,6 +35,7 @@ export async function fetchGiftIdeas({ recipient, relationship, contactNotes, oc
       occasionNotes,
       preferences,
       pastPurchases,
+      forceRefresh,
     });
     return response.data;
   } catch (error) {

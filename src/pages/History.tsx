@@ -126,8 +126,11 @@ export function History() {
 
   // Update occasion options when contact changes
   const updateOccasionOptions = (contactId: string) => {
-    const filtered = occasions.filter((o) => o.contact_id === contactId);
-    setOccasionOptions(filtered);
+    return new Promise<void>((resolve) => {
+      const filtered = occasions.filter((o) => o.contact_id === contactId);
+      setOccasionOptions(filtered);
+      setTimeout(resolve, 0); // Wait for state update
+    });
   };
 
   // Update gift options when occasion changes
@@ -191,24 +194,21 @@ export function History() {
       ? (purchase.gifts?.contact_id || purchase.contact_id || '')
       : (purchase.gifts?.occasions?.contact_id || '');
     const occasionId = isNoneOccasion ? 'none' : (purchase.gifts?.occasions?.id || '');
-    // Update occasion options for the contact, then reset form
-    updateOccasionOptions(contactId);
-    setTimeout(() => {
-      let purchaseDate = purchase.purchase_date ? parseLocalDate(purchase.purchase_date) : undefined;
-      if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
-        purchaseDate = undefined;
-      }
-      form.reset({
-        contactId,
-        occasionId,
-        price: purchase.price,
-        purchaseDate,
-        notes: purchase.notes || '',
-        category: purchase.category || CATEGORY_OPTIONS[0],
-        giftName: purchase.gifts?.name || '',
-      });
-      setEditModalOpen(true);
-    }, 0);
+    await updateOccasionOptions(contactId);
+    let purchaseDate = purchase.purchase_date ? parseLocalDate(purchase.purchase_date) : undefined;
+    if (purchaseDate && !(purchaseDate instanceof Date) || isNaN(purchaseDate)) {
+      purchaseDate = undefined;
+    }
+    form.reset({
+      contactId,
+      occasionId,
+      price: purchase.price,
+      purchaseDate,
+      notes: purchase.notes || '',
+      category: purchase.category || CATEGORY_OPTIONS[0],
+      giftName: purchase.gifts?.name || '',
+    });
+    setEditModalOpen(true);
   };
 
   // Form logic

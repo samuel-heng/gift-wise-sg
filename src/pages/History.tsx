@@ -391,12 +391,28 @@ export function History() {
           {(() => {
             // Group purchases by year
             const purchasesByYear = purchases.reduce((acc, purchase) => {
-              const year = new Date(purchase.purchase_date).getFullYear();
+              let dateObj: Date;
+              if (purchase.purchase_date instanceof Date) {
+                dateObj = purchase.purchase_date;
+              } else {
+                dateObj = new Date(purchase.purchase_date);
+              }
+              const year = isNaN(dateObj.getTime()) ? 'Unknown' : dateObj.getFullYear();
               if (!acc[year]) acc[year] = [];
               acc[year].push(purchase);
               return acc;
-            }, {} as Record<number, typeof purchases>);
-            const sortedYears = Object.keys(purchasesByYear).map(Number).sort((a, b) => b - a);
+            }, {} as Record<number | string, typeof purchases>);
+            const sortedYears = Object.keys(purchasesByYear)
+              .sort((a, b) => {
+                const aNum = Number(a);
+                const bNum = Number(b);
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                  return bNum - aNum;
+                }
+                if (!isNaN(aNum)) return -1;
+                if (!isNaN(bNum)) return 1;
+                return String(b).localeCompare(String(a));
+              });
             return (
               <div className="space-y-8">
                 {sortedYears.map(year => (
@@ -412,9 +428,9 @@ export function History() {
                         : (purchase.gifts?.occasions?.occasion_type || 'Unknown');
                       const category = purchase.category || 'Other';
                       const Icon = CATEGORY_ICONS[category] || Gift;
-                      const dateObj: Date = new Date(purchase.purchase_date as string | number | Date);
-                      const formattedDate = purchase.purchase_date && isValidDate(dateObj)
-                        ? format(dateObj as any, 'MMM d, yyyy')
+                      const dateObj: Date = coerceToDate(purchase.purchase_date);
+                      const formattedDate = dateObj
+                        ? format(dateObj, 'MMM d, yyyy')
                         : 'Unknown';
                       return (
                         <Card key={purchase.id} className="rounded-xl shadow-none border mb-3 w-full">
@@ -473,7 +489,15 @@ export function History() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Contact</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={value => {
+                            field.onChange(value);
+                            updateOccasionOptions(value);
+                            form.setValue('occasionId', '');
+                            setGiftOptions([]);
+                          }}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select contact" />

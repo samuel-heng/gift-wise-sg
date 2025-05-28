@@ -25,11 +25,11 @@ const giftIdeasCache = new Map();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 app.post("/api/gift-ideas", async (req, res) => {
-  const { recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases } = req.body;
+  const { recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases, forceRefresh } = req.body;
   const cacheKey = JSON.stringify({ recipient, relationship, contactNotes, occasion, occasionNotes, preferences, pastPurchases });
   const now = Date.now();
-  // Check cache
-  if (giftIdeasCache.has(cacheKey)) {
+  // Only use cache if forceRefresh is not true
+  if (!forceRefresh && giftIdeasCache.has(cacheKey)) {
     const { data, timestamp } = giftIdeasCache.get(cacheKey);
     if (now - timestamp < CACHE_TTL_MS) {
       return res.json(data);
